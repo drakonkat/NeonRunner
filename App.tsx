@@ -4,7 +4,8 @@ import GameCanvas, { GameCanvasHandle } from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import Controls from './components/Controls';
 import { GameStatus, GameState, GameAction, PowerUpType, PersistentData, GlitchType, Difficulty, Language } from './types';
-import { LEVELS, UPGRADE_CONFIG, INFINITE_SCALING, CHARACTERS } from './constants';
+import { LEVELS, UPGRADE_CONFIG, INFINITE_SCALING, CHARACTERS, MUSIC_TRACKS } from './constants';
+import { audioManager } from './audioManager';
 
 const App: React.FC = () => {
   const gameRef = useRef<GameCanvasHandle>(null);
@@ -23,7 +24,10 @@ const App: React.FC = () => {
         [PowerUpType.SPEED]: 0
       },
       selectedCharacterId: 'DEFAULT',
-      unlockedCharacters: ['DEFAULT']
+      unlockedCharacters: ['DEFAULT'],
+      isMuted: false,
+      selectedTrackId: 'THE_GRID',
+      unlockedTrackIds: ['THE_GRID']
     };
 
     if (saved) {
@@ -33,14 +37,15 @@ const App: React.FC = () => {
         return {
           ...defaultData,
           ...parsed,
-          // Ensure unlocking array exists if loading old save
           unlockedCharacters: parsed.unlockedCharacters || ['DEFAULT'],
           selectedCharacterId: parsed.selectedCharacterId || 'DEFAULT',
-          // If totalCoins is missing/0 in old save, default to 1000
           totalCoins: parsed.totalCoins !== undefined ? parsed.totalCoins : 1000,
           maxStageReached: parsed.maxStageReached || 1,
-          // Migration for per-character records
-          characterStageRecords: parsed.characterStageRecords || { 'DEFAULT': parsed.maxStageReached || 1 }
+          characterStageRecords: parsed.characterStageRecords || { 'DEFAULT': parsed.maxStageReached || 1 },
+          // Audio Migration
+          isMuted: parsed.isMuted !== undefined ? parsed.isMuted : false,
+          selectedTrackId: parsed.selectedTrackId || 'THE_GRID',
+          unlockedTrackIds: parsed.unlockedTrackIds || ['THE_GRID']
         };
       } catch (e) {
         console.error("Failed to load save", e);
@@ -62,6 +67,32 @@ const App: React.FC = () => {
     localStorage.setItem('neonRunnerSave', JSON.stringify(persistentData));
   }, [persistentData]);
 
+  // SYNC AUDIO MANAGER
+  useEffect(() => {
+    audioManager.setMute(persistentData.isMuted);
+    audioManager.setTrack(persistentData.selectedTrackId);
+  }, [persistentData.isMuted, persistentData.selectedTrackId]);
+
+  // Audio Life Cycle
+  useEffect(() => {
+    // Init audio on first interaction/load
+    const handleInteraction = () => {
+      audioManager.initialize();
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+    
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+
+    return () => {
+      audioManager.stop();
+    }
+  }, []);
+
+
   const [gameState, setGameState] = useState<GameState>({
     status: GameStatus.IDLE,
     score: 0,
@@ -78,12 +109,14 @@ const App: React.FC = () => {
   const handlePause = useCallback(() => {
     if (gameState.status === GameStatus.PLAYING) {
       setGameState(prev => ({ ...prev, status: GameStatus.PAUSED }));
+      audioManager.stop(); // Stop music on pause
     }
   }, [gameState.status]);
 
   const handleResume = useCallback(() => {
     if (gameState.status === GameStatus.PAUSED) {
       setGameState(prev => ({ ...prev, status: GameStatus.PLAYING }));
+      audioManager.play(); // Resume music
     }
   }, [gameState.status]);
 
@@ -99,6 +132,7 @@ const App: React.FC = () => {
       activeGlitches: []
     }));
     gameRef.current?.resetGame();
+    audioManager.stop(); // Stop music in menu (or keep playing if you prefer menu music)
   }, []);
 
   // Keyboard Controls
@@ -157,6 +191,7 @@ const App: React.FC = () => {
     }));
     setSkillState({ current: 0, max: 1 });
     gameRef.current?.resetGame();
+    audioManager.play(); // Start music
   };
 
   const openStore = () => {
@@ -190,6 +225,31 @@ const App: React.FC = () => {
 
   const handleSetDifficulty = (diff: Difficulty) => {
     setGameState(prev => ({ ...prev, difficulty: diff }));
+  };
+
+  const handleToggleMute = () => {
+      setPersistentData(prev => ({ ...prev, isMuted: !prev.isMuted }));
+  };
+
+  const handleSelectAudioTrack = (id: string) => {
+      const track = MUSIC_TRACKS.find(t => t.id === id);
+      if (!track) return;
+      
+      const isUnlocked = persistentData.unlockedTrackIds.includes(id);
+
+      if (isUnlocked) {
+          setPersistentData(prev => ({ ...prev, selectedTrackId: id }));
+      } else {
+          // Buy logic
+          if (persistentData.totalCoins >= track.cost) {
+              setPersistentData(prev => ({
+                  ...prev,
+                  totalCoins: prev.totalCoins - track.cost,
+                  unlockedTrackIds: [...prev.unlockedTrackIds, id],
+                  selectedTrackId: id
+              }));
+          }
+      }
   };
 
   const buyUpgrade = (type: PowerUpType) => {
@@ -248,6 +308,8 @@ const App: React.FC = () => {
                  characterStageRecords: newRecords
              };
          });
+         
+         audioManager.stop(); // Silence during story
 
          return {
            ...prev,
@@ -285,6 +347,7 @@ const App: React.FC = () => {
          status: GameStatus.PLAYING,
          activeGlitches: [...prev.activeGlitches, glitchId as GlitchType]
      }));
+     audioManager.play(); // Resume music on next stage
   };
 
   const handleCollision = useCallback(() => {
@@ -297,6 +360,8 @@ const App: React.FC = () => {
         totalCoins: current.totalCoins + prev.coinsCollected,
         highScore: Math.max(prev.score, current.highScore)
       }));
+
+      audioManager.stop();
 
       return {
         ...prev,
@@ -353,6 +418,8 @@ const App: React.FC = () => {
         onPause={handlePause}
         onResume={handleResume}
         onBackToMenu={handleBackToMenu}
+        onToggleMute={handleToggleMute}
+        onSelectAudioTrack={handleSelectAudioTrack}
       />
 
       {gameState.status === GameStatus.PLAYING && (

@@ -1,5 +1,5 @@
 
-import { LevelConfig, PowerUpType, GlitchMod, NarrativeScenario, Difficulty, Character, LocalizedText } from './types';
+import { LevelConfig, PowerUpType, GlitchMod, NarrativeScenario, Difficulty, Character, LocalizedText, AudioTrack } from './types';
 
 export const LANE_WIDTH = 2.5;
 export const JUMP_FORCE = 0.25;
@@ -10,6 +10,7 @@ export const UI_TEXT = {
   START_RUN: { en: "START RUN", it: "INIZIA CORSA" },
   CHARACTERS: { en: "CHARACTERS", it: "PERSONAGGI" },
   UPGRADES: { en: "UPGRADES", it: "POTENZIAMENTI" },
+  AUDIO: { en: "AUDIO DECK", it: "AUDIO DECK" },
   HIGH_SCORE: { en: "High Score", it: "Record" },
   SELECT_DIFFICULTY: { en: "SELECT DIFFICULTY", it: "SELEZIONA DIFFICOLTÀ" },
   PAUSED: { en: "PAUSED", it: "PAUSA" },
@@ -35,7 +36,10 @@ export const UI_TEXT = {
   SUBTITLE: { en: "Rispondi. Corri.", it: "Rispondi. Corri." },
   READ_LORE: { en: "READ STORY", it: "LEGGI STORIA" },
   LOCKED_CHAPTER: { en: "REACH STAGE {0} TO DECRYPT", it: "RAGGIUNGI LIVELLO {0} PER DECRITTARE" },
-  CLOSE: { en: "CLOSE", it: "CHIUDI" }
+  CLOSE: { en: "CLOSE", it: "CHIUDI" },
+  MUTE: { en: "MUTE AUDIO", it: "MUTA AUDIO" },
+  UNMUTE: { en: "ENABLE AUDIO", it: "ATTIVA AUDIO" },
+  CURRENT_TRACK: { en: "NOW PLAYING", it: "IN RIPRODUZIONE" }
 };
 
 export const DIFFICULTY_MODS: Record<Difficulty, { speed: number, density: number, score: number, coinMultiplier: number, label: LocalizedText, color: string }> = {
@@ -64,6 +68,37 @@ export const DIFFICULTY_MODS: Record<Difficulty, { speed: number, density: numbe
     color: "#ef4444" 
   }
 };
+
+export const MUSIC_TRACKS: AudioTrack[] = [
+  {
+    id: 'THE_GRID',
+    name: { en: 'The Grid', it: 'La Griglia' },
+    bpm: 120,
+    cost: 0,
+    color: '#22d3ee' // Cyan
+  },
+  {
+    id: 'NEON_CHASE',
+    name: { en: 'Neon Chase', it: 'Neon Chase' },
+    bpm: 140,
+    cost: 500,
+    color: '#f472b6' // Pink
+  },
+  {
+    id: 'DATA_CORE',
+    name: { en: 'Data Core', it: 'Data Core' },
+    bpm: 100,
+    cost: 1000,
+    color: '#facc15' // Yellow
+  },
+  {
+    id: 'ERROR_CODE',
+    name: { en: 'Error Code', it: 'Codice Errore' },
+    bpm: 160,
+    cost: 2000,
+    color: '#ef4444' // Red
+  }
+];
 
 export const CHARACTERS: Character[] = [
   {

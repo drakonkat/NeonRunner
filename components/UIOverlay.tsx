@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { GameStatus, GameState, PowerUpType, PersistentData, NarrativeScenario, Difficulty, Language, LocalizedText } from '../types';
-import { LEVELS, COLORS, UPGRADE_CONFIG, LORE_TEXT, INFINITE_SCALING, NARRATIVE_SCENARIOS, GLITCH_MODS, LEVEL_END_LORE, DIFFICULTY_MODS, CHARACTERS, UI_TEXT, CHARACTER_STORIES } from '../constants';
+import { LEVELS, COLORS, UPGRADE_CONFIG, LORE_TEXT, INFINITE_SCALING, NARRATIVE_SCENARIOS, GLITCH_MODS, LEVEL_END_LORE, DIFFICULTY_MODS, CHARACTERS, UI_TEXT, CHARACTER_STORIES, MUSIC_TRACKS } from '../constants';
 
 interface UIOverlayProps {
   gameState: GameState;
@@ -20,6 +20,8 @@ interface UIOverlayProps {
   onSelectCharacter: (id: string) => void;
   onPause: () => void;
   onResume: () => void;
+  onToggleMute: () => void;
+  onSelectAudioTrack: (id: string) => void;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({ 
@@ -38,11 +40,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   onOpenCharacterSelect,
   onSelectCharacter,
   onPause,
-  onResume
+  onResume,
+  onToggleMute,
+  onSelectAudioTrack
 }) => {
   const [activeScenario, setActiveScenario] = useState<NarrativeScenario | null>(null);
   const [chosenFlavor, setChosenFlavor] = useState<string | null>(null);
   const [loreCharacterId, setLoreCharacterId] = useState<string | null>(null); // Track which char story is open
+  const [storeTab, setStoreTab] = useState<'UPGRADES' | 'AUDIO'>('UPGRADES');
 
   // Helper for localization
   const t = (content: LocalizedText | undefined) => {
@@ -172,6 +177,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             {txt('RESUME')}
           </button>
           <button
+             onClick={onToggleMute}
+             className={`w-full py-3 font-bold rounded-xl border ${persistentData.isMuted ? 'bg-red-900/50 border-red-500 text-red-200' : 'bg-green-900/50 border-green-500 text-green-200'}`}
+          >
+             {persistentData.isMuted ? `🔇 ${txt('UNMUTE')}` : `🔊 ${txt('MUTE')}`}
+          </button>
+          <button
             onClick={onBackToMenu}
             className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl"
           >
@@ -271,10 +282,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   if (gameState.status === GameStatus.STORE) {
     return (
        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md text-white p-4">
-         <div className="w-full max-w-md">
-           <div className="flex justify-between items-center mb-8">
+         <div className="w-full max-w-md h-full flex flex-col">
+           <div className="flex justify-between items-center mb-4 flex-shrink-0">
              <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 italic">
-               {txt('UPGRADES')}
+               STORE
              </h2>
              <div className="bg-slate-800 px-4 py-2 rounded-full flex items-center gap-2 border border-yellow-500/30">
                <span className="text-yellow-400 text-xl">●</span>
@@ -282,8 +293,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
              </div>
            </div>
 
-           <div className="space-y-4 mb-8">
-             {[PowerUpType.SHIELD, PowerUpType.MULTIPLIER, PowerUpType.SPEED].map((type) => {
+           {/* TABS */}
+           <div className="flex gap-2 mb-6">
+               <button 
+                 onClick={() => setStoreTab('UPGRADES')}
+                 className={`flex-1 py-2 font-bold rounded uppercase ${storeTab === 'UPGRADES' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-gray-400'}`}
+               >
+                   {txt('UPGRADES')}
+               </button>
+               <button 
+                 onClick={() => setStoreTab('AUDIO')}
+                 className={`flex-1 py-2 font-bold rounded uppercase ${storeTab === 'AUDIO' ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-gray-400'}`}
+               >
+                   {txt('AUDIO')}
+               </button>
+           </div>
+
+           <div className="space-y-4 mb-8 flex-grow overflow-y-auto">
+             {storeTab === 'UPGRADES' && [PowerUpType.SHIELD, PowerUpType.MULTIPLIER, PowerUpType.SPEED].map((type) => {
                const level = persistentData.upgrades[type] || 0;
                const isMax = level >= UPGRADE_CONFIG.MAX_LEVEL;
                const cost = getUpgradeCost(type);
@@ -319,11 +346,51 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                  </div>
                );
              })}
+
+             {storeTab === 'AUDIO' && MUSIC_TRACKS.map((track) => {
+                 const isUnlocked = persistentData.unlockedTrackIds.includes(track.id);
+                 const isSelected = persistentData.selectedTrackId === track.id;
+                 const canAfford = persistentData.totalCoins >= track.cost;
+
+                 return (
+                    <div key={track.id} className={`bg-white/5 p-4 rounded-xl border flex items-center justify-between ${isSelected ? 'border-cyan-400 bg-cyan-900/20' : 'border-white/10'}`}>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: track.color }}>
+                                <span className="text-xl">🎵</span>
+                            </div>
+                            <div>
+                                <div className="font-bold text-lg">{t(track.name)}</div>
+                                <div className="text-xs text-gray-400 font-mono">{track.bpm} BPM</div>
+                            </div>
+                        </div>
+
+                        {isUnlocked ? (
+                             <button 
+                                onClick={() => onSelectAudioTrack(track.id)}
+                                className={`px-4 py-2 rounded-lg font-bold text-sm ${isSelected ? 'bg-cyan-500 text-black' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                             >
+                                 {isSelected ? 'ACTIVE' : 'SELECT'}
+                             </button>
+                        ) : (
+                            <button 
+                                onClick={() => onSelectAudioTrack(track.id)}
+                                disabled={!canAfford}
+                                className={`px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                                canAfford ? 'bg-yellow-500 hover:bg-yellow-400 text-black' : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                <span>{track.cost}</span>
+                                <span className="text-[10px]">●</span>
+                            </button>
+                        )}
+                    </div>
+                 )
+             })}
            </div>
 
            <button
              onClick={onBackToMenu}
-             className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors"
+             className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors mt-auto"
            >
              {txt('BACK_TO_MENU')}
            </button>
@@ -453,6 +520,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 className={`px-3 py-1 font-bold rounded border border-white/30 ${language === 'IT' ? 'bg-cyan-500 text-black' : 'bg-black text-gray-400'}`}
             >
                 IT
+            </button>
+            <button 
+                onClick={onToggleMute}
+                className={`px-3 py-1 font-bold rounded border border-white/30 ${!persistentData.isMuted ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}
+                title={persistentData.isMuted ? "Unmute" : "Mute"}
+            >
+                {persistentData.isMuted ? "🔇" : "🔊"}
             </button>
         </div>
 
@@ -673,6 +747,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 style={{ width: `${Math.min(100, (gameState.score / nextLevelScore) * 100)}%` }}
                 />
             </div>
+            
+            {/* Current Track Info (Fade in/out usually, simplified here) */}
+            {!persistentData.isMuted && (
+                <div className="mt-2 text-[10px] text-cyan-500/80 font-mono text-right">
+                    ♪ {t(MUSIC_TRACKS.find(t => t.id === persistentData.selectedTrackId)?.name)}
+                </div>
+            )}
         </div>
         </div>
     </>

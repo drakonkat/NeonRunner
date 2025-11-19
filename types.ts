@@ -72,6 +72,14 @@ export interface Character {
   skillDuration?: number; // in seconds (if applicable)
 }
 
+export interface AudioTrack {
+  id: string;
+  name: LocalizedText;
+  bpm: number;
+  cost: number;
+  color: string;
+}
+
 export interface NarrativeOption {
   text: LocalizedText;
   glitchId: GlitchType;
@@ -93,11 +101,15 @@ export interface UpgradeLevels {
 export interface PersistentData {
   totalCoins: number;
   highScore: number;
-  maxStageReached: number; // Global record (for stats)
-  characterStageRecords: Record<string, number>; // Per-character max stage (for story)
+  maxStageReached: number; 
+  characterStageRecords: Record<string, number>; 
   upgrades: UpgradeLevels;
   selectedCharacterId: string; 
-  unlockedCharacters: string[]; 
+  unlockedCharacters: string[];
+  // Audio Settings
+  isMuted: boolean;
+  selectedTrackId: string;
+  unlockedTrackIds: string[];
 }
 
 export interface GameState {
