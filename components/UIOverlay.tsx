@@ -48,6 +48,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   const [chosenFlavor, setChosenFlavor] = useState<string | null>(null);
   const [loreCharacterId, setLoreCharacterId] = useState<string | null>(null); // Track which char story is open
   const [storeTab, setStoreTab] = useState<'UPGRADES' | 'AUDIO'>('UPGRADES');
+  
+  // Countdown state
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [pendingGlitchId, setPendingGlitchId] = useState<string | null>(null);
 
   // Helper for localization
   const t = (content: LocalizedText | undefined) => {
@@ -63,15 +67,36 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       const randomScenario = NARRATIVE_SCENARIOS[Math.floor(Math.random() * NARRATIVE_SCENARIOS.length)];
       setActiveScenario(randomScenario);
       setChosenFlavor(null);
+      setCountdown(null);
+      setPendingGlitchId(null);
     }
   }, [gameState.status]);
 
   const handleAnswer = (glitchId: string, flavor: string) => {
       setChosenFlavor(flavor);
-      setTimeout(() => {
-          onSelectGlitch(glitchId);
-      }, 1500);
+      setPendingGlitchId(glitchId);
+      setCountdown(3); 
   };
+
+  // Handle Countdown
+  useEffect(() => {
+      if (countdown === null) return;
+
+      if (countdown > 0) {
+          const timer = setTimeout(() => {
+              setCountdown(countdown - 1);
+          }, 1000);
+          return () => clearTimeout(timer);
+      } else {
+          // Countdown finished
+          if (pendingGlitchId) {
+              onSelectGlitch(pendingGlitchId);
+              setPendingGlitchId(null); // Stop further processing
+              setCountdown(null); // Reset countdown
+          }
+      }
+  }, [countdown, pendingGlitchId, onSelectGlitch]);
+
 
   // Calculate dynamic threshold for HUD
   const levelIndex = gameState.level - 1;
@@ -175,6 +200,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)]"
           >
             {txt('RESUME')}
+            <span className="block text-[10px] font-mono uppercase tracking-wider mt-1 opacity-60">[ENTER]</span>
           </button>
           <button
              onClick={onToggleMute}
@@ -220,6 +246,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                     className="px-8 py-4 bg-white text-black font-black text-xl hover:bg-cyan-400 transition-all transform hover:scale-105 rounded-sm uppercase tracking-wider"
                 >
                     {txt('PROCEED')}
+                    <span className="block text-[10px] font-normal mt-1 opacity-60">[ENTER]</span>
                 </button>
             </div>
         </div>
@@ -234,9 +261,21 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 <h2 className="text-3xl md:text-5xl font-black text-white text-center italic mb-4 glitch-text">
                     {txt('SYSTEM_UPDATED')}
                 </h2>
-                 <p className="text-xl md:text-2xl text-cyan-400 font-mono text-center max-w-2xl">
+                 <p className="text-xl md:text-2xl text-cyan-400 font-mono text-center max-w-2xl mb-10">
                     {`> ${chosenFlavor}`}
                  </p>
+                 
+                 {/* COUNTDOWN DISPLAY */}
+                 {countdown !== null && countdown > 0 && (
+                    <div className="text-9xl font-black text-white animate-pulse drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+                        {countdown}
+                    </div>
+                 )}
+                 {countdown === 0 && (
+                    <div className="text-6xl font-black text-green-500 animate-bounce">
+                        GO!
+                    </div>
+                 )}
             </div>
         )
     }
@@ -651,6 +690,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
           >
             {txt('REBOOT')}
+            <span className="block text-[10px] font-mono uppercase tracking-wider mt-1 opacity-60">[ENTER]</span>
           </button>
         </div>
       </div>

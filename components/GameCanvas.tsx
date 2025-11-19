@@ -68,6 +68,7 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
   const enemiesRef = useRef<THREE.Group[]>([]);
   const coinsRef = useRef<THREE.Group[]>([]);
   const powerUpsRef = useRef<THREE.Group[]>([]);
+  const lastPowerUpZRef = useRef<number>(-999);
   
   // New Refs for Moving Platforms and Gaps
   const platformsRef = useRef<THREE.Mesh[]>([]);
@@ -259,6 +260,7 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
       isSlidingRef.current = false;
       slideTimerRef.current = 0;
       timeRef.current = 0;
+      lastPowerUpZRef.current = -999;
       
       activePowerUpRef.current = PowerUpType.NONE;
       powerUpTimerRef.current = 0;
@@ -553,11 +555,26 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
     spawnCoinRef.current = spawnCoin;
 
     const spawnPowerUp = (zPos: number) => {
+      // Anti-spam: prevent powerups from spawning too close to each other
+      if (Math.abs(zPos - lastPowerUpZRef.current) < 100) return;
+      
       const types = [PowerUpType.SHIELD, PowerUpType.MULTIPLIER, PowerUpType.SPEED];
       const type = types[Math.floor(Math.random() * types.length)];
-      const lanes = [Lane.LEFT, Lane.CENTER, Lane.RIGHT];
-      const lane = lanes[Math.floor(Math.random() * lanes.length)];
-      if (isOccupied(lane, zPos)) return;
+      
+      // Smart lane selection: try to find a free lane instead of just picking one randomly
+      const allLanes = [Lane.LEFT, Lane.CENTER, Lane.RIGHT];
+      const shuffledLanes = allLanes.sort(() => Math.random() - 0.5);
+      
+      let chosenLane = null;
+      for (const lane of shuffledLanes) {
+          if (!isOccupied(lane, zPos)) {
+              chosenLane = lane;
+              break;
+          }
+      }
+      
+      if (chosenLane === null) return; // All lanes blocked
+
       const group = new THREE.Group();
       let geo;
       if (type === PowerUpType.SHIELD) geo = new THREE.IcosahedronGeometry(0.4);
@@ -568,10 +585,12 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
       });
       const mesh = new THREE.Mesh(geo, mat);
       group.add(mesh);
-      group.position.set(lane * LANE_WIDTH, 0.5, zPos);
+      group.position.set(chosenLane * LANE_WIDTH, 0.5, zPos);
       group.userData = { type: 'POWERUP', powerUpType: type };
       scene.add(group);
       powerUpsRef.current.push(group);
+      
+      lastPowerUpZRef.current = zPos;
     };
 
     const createTrail = (pos: THREE.Vector3, rot: THREE.Euler, scale: THREE.Vector3) => {
@@ -676,7 +695,7 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
     let lastTrailTime = 0;
 
     const loop = (time: number) => {
-      const deltaTimeRaw = Math.min(time - lastTime, 50);
+      const deltaTimeRaw = Math.min(time - lastTime, 100); // Cap at 100ms to prevent huge jumps on tab switch
       lastTime = time;
       
       let timeScale = 1.0;
@@ -684,8 +703,12 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
           timeScale = 0.5;
       }
 
-      const deltaTime = deltaTimeRaw * timeScale;
-      const effectiveDelta = (statusRef.current === GameStatus.PLAYING) ? deltaTime : 0;
+      const effectiveDelta = (statusRef.current === GameStatus.PLAYING) ? deltaTimeRaw * timeScale : 0;
+      
+      // Delta Time Factor relative to 60FPS (16.67ms)
+      // If 144hz (approx 7ms), dtFactor is ~0.42 -> Physics moves less per frame, same per second.
+      // If 30hz (approx 33ms), dtFactor is ~2.0 -> Physics moves more per frame, same per second.
+      const dtFactor = effectiveDelta / 16.67;
 
       const isPlaying = statusRef.current === GameStatus.PLAYING;
       const isLevelComplete = statusRef.current === GameStatus.LEVEL_COMPLETE;
@@ -780,11 +803,11 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
           cameraRef.current.position.y = offsetY;
 
           const targetFov = glitches.includes('WIDE_LENS') ? 110 : 60;
-          cameraRef.current.fov += (targetFov - cameraRef.current.fov) * 0.05;
+          cameraRef.current.fov += (targetFov - cameraRef.current.fov) * 0.05 * dtFactor;
           cameraRef.current.updateProjectionMatrix();
 
           if (glitches.includes('DISCO')) {
-            fogColorTimer += deltaTime * 0.005;
+            fogColorTimer += deltaTimeRaw * 0.005;
             const r = Math.sin(fogColorTimer) * 0.5 + 0.5;
             const g = Math.sin(fogColorTimer + 2) * 0.5 + 0.5;
             const b = Math.sin(fogColorTimer + 4) * 0.5 + 0.5;
@@ -825,8 +848,9 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         currentDensity = Math.min(INFINITE_SCALING.DENSITY_CAP, (LEVELS[LEVELS.length-1].obstacleDensity + (extraLevels * INFINITE_SCALING.DENSITY_INCREMENT)) * difficultyConfig.density);
       }
       
-      // Apply Time Scale to speed
-      currentSpeed *= timeScale;
+      // Note: We do not apply timeScale directly to currentSpeed here because currentSpeed is "Units per frame".
+      // We apply timeScale to the DELTA, which produces dtFactor.
+      // So we just need to multiply currentSpeed by dtFactor later.
 
       // Effects Update
        if (sceneRef.current) {
@@ -836,7 +860,7 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
             let remove = false;
 
             if (!isExplosion) {
-                group.userData.life -= 0.03 * timeScale;
+                group.userData.life -= 0.03 * dtFactor; // Norm
                 if (group.userData.life <= 0) remove = true;
             }
 
@@ -845,16 +869,17 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
             group.children.forEach((child) => {
                 const mesh = child as THREE.Mesh;
                 const vel = mesh.userData.velocity as THREE.Vector3;
-                mesh.position.add(vel.clone().multiplyScalar(timeScale)); // Apply timescale to particle physics
-                mesh.rotation.x += mesh.userData.rotSpeed.x * timeScale;
-                mesh.rotation.y += mesh.userData.rotSpeed.y * timeScale;
+                // Normalize physics
+                mesh.position.add(vel.clone().multiplyScalar(dtFactor)); 
+                mesh.rotation.x += mesh.userData.rotSpeed.x * dtFactor;
+                mesh.rotation.y += mesh.userData.rotSpeed.y * dtFactor;
 
                 if (isExplosion) {
-                    vel.y -= 0.02 * timeScale;
-                    mesh.scale.multiplyScalar(0.96);
+                    vel.y -= 0.02 * dtFactor; // Norm gravity
+                    mesh.scale.multiplyScalar(0.96); // Scalar dampening
                     if (mesh.scale.x > 0.01) allExplosionParticlesDead = false;
                 } else {
-                    vel.y -= 0.01 * timeScale;
+                    vel.y -= 0.01 * dtFactor;
                     if (mesh.material instanceof THREE.Material) mesh.material.opacity = group.userData.life;
                     mesh.scale.setScalar(group.userData.life);
                 }
@@ -877,8 +902,8 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
 
         for (let i = trailRef.current.length - 1; i >= 0; i--) {
             const t = trailRef.current[i];
-            t.position.z += currentSpeed; 
-            t.userData.life -= 0.04 * timeScale; 
+            t.position.z += currentSpeed * dtFactor; // Norm
+            t.userData.life -= 0.04 * dtFactor; // Norm
             
             if (t.userData.life <= 0) {
                 sceneRef.current?.remove(t);
@@ -893,8 +918,9 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         // --- UPDATE MOVING PLATFORMS ---
         for (let i = platformsRef.current.length - 1; i >= 0; i--) {
             const p = platformsRef.current[i];
-            p.position.z += currentSpeed;
+            p.position.z += currentSpeed * dtFactor; // Norm forward movement
             
+            // The sine wave uses REAL TIME, so we don't use dtFactor here, we use timeRef which accumulates delta
             const t = timeRef.current * p.userData.speed + p.userData.offset;
             if (p.userData.moveType === 'HORIZ') {
                 p.position.x = Math.sin(t) * p.userData.amp;
@@ -911,9 +937,9 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         // Remove Gaps
         for (let i = gapsRef.current.length - 1; i >= 0; i--) {
              const g = gapsRef.current[i];
-             g.mesh.position.z += currentSpeed;
-             g.zStart += currentSpeed;
-             g.zEnd += currentSpeed;
+             g.mesh.position.z += currentSpeed * dtFactor; // Norm
+             g.zStart += currentSpeed * dtFactor;
+             g.zEnd += currentSpeed * dtFactor;
              
              if (g.zStart > 20) { 
                  sceneRef.current?.remove(g.mesh);
@@ -955,26 +981,26 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         if (activePowerUpRef.current === PowerUpType.SPEED) {
           currentSpeed *= POWERUP_CONFIG.SPEED_BOOST_MULTIPLIER;
         }
-        speedRef.current = currentSpeed;
+        speedRef.current = currentSpeed; // Just for ref, doesn't affect physics directly
 
         let targetScale = 1;
         if (glitches.includes('GIANT')) targetScale = 2.5;
         if (glitches.includes('TINY')) targetScale = 0.4;
         
         const currentScaleBase = isSlidingRef.current ? 0.5 : 1.0;
-        player.scale.x += (targetScale - player.scale.x) * 0.1;
-        player.scale.z += (targetScale - player.scale.z) * 0.1;
-        player.scale.y += ((targetScale * currentScaleBase) - player.scale.y) * 0.1;
+        player.scale.x += (targetScale - player.scale.x) * 0.1 * dtFactor;
+        player.scale.z += (targetScale - player.scale.z) * 0.1 * dtFactor;
+        player.scale.y += ((targetScale * currentScaleBase) - player.scale.y) * 0.1 * dtFactor;
 
         // Update Grid/Particles
         if (gridRef.current) {
-          gridRef.current.position.z += currentSpeed;
+          gridRef.current.position.z += currentSpeed * dtFactor;
           if (gridRef.current.position.z > -50 + 2.5) gridRef.current.position.z = -50;
         }
         if (particlesRef.current) {
            const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
            for(let i = 0; i < positions.length; i += 3) {
-             positions[i+2] += currentSpeed * 2;
+             positions[i+2] += currentSpeed * 2 * dtFactor;
              if (positions[i+2] > 10) {
                positions[i+2] = -60;
                positions[i] = (Math.random() - 0.5) * 50;
@@ -992,13 +1018,14 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
             if (glitches.includes('AUSTRALIA_MODE')) scoreMultiplier *= 1.5; 
             if (glitches.includes('WIRE_FRAME')) scoreMultiplier *= 1.2; 
             
-            scoreRef.current += (currentSpeed * scoreMultiplier * difficultyConfig.score);
+            // Score is based on distance traveled basically, so usage of currentSpeed * dtFactor maintains consistency
+            scoreRef.current += (currentSpeed * scoreMultiplier * difficultyConfig.score * dtFactor);
             onScoreUpdate(Math.floor(scoreRef.current), coinsCollectedRef.current);
         }
 
         // Update PowerUp Timer
         if (activePowerUpRef.current !== PowerUpType.NONE) {
-          powerUpTimerRef.current -= effectiveDelta;
+          powerUpTimerRef.current -= effectiveDelta; // Time based, correct
           const progress = Math.max(0, (powerUpTimerRef.current / powerUpDurationRef.current) * 100);
           onPowerUpChange(activePowerUpRef.current, progress);
           if (powerUpTimerRef.current <= 0) {
@@ -1008,13 +1035,14 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
           }
         }
 
-        // Horizontal Movement
-        player.position.x += (targetXRef.current - player.position.x) * 0.2;
+        // Horizontal Movement (LERP needs time correction)
+        // Standardizing Lerp: val += (target - val) * factor * dtFactor
+        player.position.x += (targetXRef.current - player.position.x) * 0.2 * dtFactor;
         player.rotation.z = (player.position.x - targetXRef.current) * -0.1;
 
         // Slide logic
         if (isSlidingRef.current) {
-          slideTimerRef.current -= effectiveDelta * 0.001;
+          slideTimerRef.current -= effectiveDelta * 0.001; // Time based, correct
           if (slideTimerRef.current <= 0) {
             isSlidingRef.current = false;
           }
@@ -1057,8 +1085,9 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         if (glitches.includes('MOON_GRAVITY')) gravityMod = 0.4;
         if (glitches.includes('HEAVY_METAL')) gravityMod = 2.0;
 
-        velocityYRef.current += GRAVITY * gravityMod * timeScale; // Apply timescale to gravity
-        player.position.y += velocityYRef.current * timeScale; // Apply timescale to movement
+        // Apply dtFactor to gravity/velocity integration
+        velocityYRef.current += GRAVITY * gravityMod * dtFactor; 
+        player.position.y += velocityYRef.current * dtFactor; 
 
         if (player.position.y <= terrainHeight && velocityYRef.current <= 0) {
             if (terrainHeight > -100) {
@@ -1079,7 +1108,7 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         playerYRef.current = player.position.y;
 
         if (isPlaying) {
-            spawnTimer += currentSpeed;
+            spawnTimer += currentSpeed * dtFactor; // Norm
             if (spawnTimer > 11) {
             spawnTimer = 0;
             const spawnZ = -50;
@@ -1104,16 +1133,16 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         const updateAndCheckCollision = (list: THREE.Object3D[], type: 'OBSTACLE' | 'ENEMY' | 'COIN' | 'POWERUP') => {
              for (let i = list.length - 1; i >= 0; i--) {
                 const obj = list[i];
-                obj.position.z += currentSpeed;
-                if (type === 'ENEMY') obj.position.z += ENEMY_CONFIG.SPEED_OFFSET * timeScale; // Apply timescale
+                obj.position.z += currentSpeed * dtFactor; // Norm
+                if (type === 'ENEMY') obj.position.z += ENEMY_CONFIG.SPEED_OFFSET * dtFactor; // Norm
                 
                 if (type === 'ENEMY') {
                     const enemy = obj as THREE.Group;
                     const wobble = Math.sin(timeRef.current * ENEMY_CONFIG.WOBBLE_SPEED + enemy.userData.timeOffset) * ENEMY_CONFIG.WOBBLE_AMP;
-                    enemy.rotation.z += 0.1 * timeScale;
+                    enemy.rotation.z += 0.1 * dtFactor;
                     enemy.position.y = 0.5 + Math.abs(wobble * 0.5);
                 } else if (type === 'COIN' || type === 'POWERUP') {
-                    obj.rotation.y += 0.1 * timeScale;
+                    obj.rotation.y += 0.1 * dtFactor;
                 }
 
                 if (isPlaying) {
@@ -1153,8 +1182,8 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
                             collectionRadius = 5.0; // Magnet Power
                             // Pull visual effect
                              if (dx < 5.0 && dz < 10.0) {
-                                 obj.position.x += (player.position.x - obj.position.x) * 0.2;
-                                 obj.position.z += (player.position.z - obj.position.z) * 0.2;
+                                 obj.position.x += (player.position.x - obj.position.x) * 0.2 * dtFactor;
+                                 obj.position.z += (player.position.z - obj.position.z) * 0.2 * dtFactor;
                              }
                         }
 

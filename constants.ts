@@ -44,7 +44,7 @@ export const UI_TEXT = {
 
 export const DIFFICULTY_MODS: Record<Difficulty, { speed: number, density: number, score: number, coinMultiplier: number, label: LocalizedText, color: string }> = {
   SCRIPT_KIDDIE: {
-    speed: 0.55,     
+    speed: 1.1,     
     density: 0.4,    
     score: 0.5,      
     coinMultiplier: 0.5, 
@@ -52,7 +52,7 @@ export const DIFFICULTY_MODS: Record<Difficulty, { speed: number, density: numbe
     color: "#4ade80" 
   },
   CYBER_PUNK: {
-    speed: 1.0,
+    speed: 2.0,
     density: 1.0,
     score: 1.0,
     coinMultiplier: 1.0, 
@@ -60,7 +60,7 @@ export const DIFFICULTY_MODS: Record<Difficulty, { speed: number, density: numbe
     color: "#22d3ee" 
   },
   NET_RUNNER: {
-    speed: 1.5,      
+    speed: 3.0,      
     density: 1.6,    
     score: 2.5,      
     coinMultiplier: 2.5, 

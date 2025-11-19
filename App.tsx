@@ -135,9 +135,49 @@ const App: React.FC = () => {
     audioManager.stop(); // Stop music in menu (or keep playing if you prefer menu music)
   }, []);
 
+  const startGame = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      status: GameStatus.PLAYING,
+      score: 0,
+      coinsCollected: 0,
+      level: 1,
+      activePowerUp: PowerUpType.NONE,
+      powerUpTimeLeft: 0,
+      activeGlitches: [] // Reset glitches on new run
+    }));
+    setSkillState({ current: 0, max: 1 });
+    gameRef.current?.resetGame();
+    audioManager.play(); // Start music
+  }, []);
+
+  // Transition from Level Complete (Lore) -> Roguelike Choice
+  const handleNextLevelAck = useCallback(() => {
+      setGameState(prev => ({
+          ...prev,
+          status: GameStatus.LEVEL_UP_CHOICE
+      }));
+  }, []);
+
   // Keyboard Controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // GLOBAL MENU SHORTCUTS
+      if (e.key === 'Enter') {
+          if (gameState.status === GameStatus.GAME_OVER) {
+              startGame();
+              return;
+          }
+          if (gameState.status === GameStatus.LEVEL_COMPLETE) {
+              handleNextLevelAck();
+              return;
+          }
+          if (gameState.status === GameStatus.PAUSED) {
+              handleResume();
+              return;
+          }
+      }
+
       if (e.key === 'Escape' || e.key === 'p') {
         if (gameState.status === GameStatus.PLAYING) {
           handlePause();
@@ -176,23 +216,7 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState.status, handlePause, handleResume]);
-
-  const startGame = () => {
-    setGameState(prev => ({
-      ...prev,
-      status: GameStatus.PLAYING,
-      score: 0,
-      coinsCollected: 0,
-      level: 1,
-      activePowerUp: PowerUpType.NONE,
-      powerUpTimeLeft: 0,
-      activeGlitches: [] // Reset glitches on new run
-    }));
-    setSkillState({ current: 0, max: 1 });
-    gameRef.current?.resetGame();
-    audioManager.play(); // Start music
-  };
+  }, [gameState.status, handlePause, handleResume, startGame, handleNextLevelAck]);
 
   const openStore = () => {
     setGameState(prev => ({ ...prev, status: GameStatus.STORE }));
@@ -332,23 +356,15 @@ const App: React.FC = () => {
       setSkillState({ current, max });
   }, []);
 
-  // Transition from Level Complete (Lore) -> Roguelike Choice
-  const handleNextLevelAck = () => {
-      setGameState(prev => ({
-          ...prev,
-          status: GameStatus.LEVEL_UP_CHOICE
-      }));
-  };
-
   // Transition from Choice -> Playing
-  const handleSelectGlitch = (glitchId: string) => {
+  const handleSelectGlitch = useCallback((glitchId: string) => {
      setGameState(prev => ({
          ...prev,
          status: GameStatus.PLAYING,
          activeGlitches: [...prev.activeGlitches, glitchId as GlitchType]
      }));
      audioManager.play(); // Resume music on next stage
-  };
+  }, []);
 
   const handleCollision = useCallback(() => {
     setGameState(prev => {

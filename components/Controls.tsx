@@ -17,7 +17,8 @@ const Controls: React.FC<ControlsProps> = ({ onAction, skillProgress, isSkillRea
   };
 
   return (
-    <div className="absolute bottom-8 left-0 right-0 flex justify-between px-6 gap-4 z-20 select-none">
+    // Increased bottom padding to bottom-16 for mobile browsers with bottom bars
+    <div className="absolute bottom-16 md:bottom-8 left-0 right-0 flex justify-between px-6 gap-4 z-20 select-none">
       {/* LEFT / RIGHT */}
       <div className="flex gap-4 items-end">
         <button
