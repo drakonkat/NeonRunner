@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import GameCanvas, { GameCanvasHandle } from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import Controls from './components/Controls';
-import { GameStatus, GameState, GameAction, PowerUpType, PersistentData, GlitchType, Difficulty } from './types';
+import { GameStatus, GameState, GameAction, PowerUpType, PersistentData, GlitchType, Difficulty, Language } from './types';
 import { LEVELS, UPGRADE_CONFIG, INFINITE_SCALING, CHARACTERS } from './constants';
 
 const App: React.FC = () => {
@@ -15,6 +15,7 @@ const App: React.FC = () => {
     const defaultData: PersistentData = {
       totalCoins: 1000, // Start with 1000 coins
       highScore: 0,
+      maxStageReached: 1,
       upgrades: {
         [PowerUpType.SHIELD]: 0,
         [PowerUpType.MULTIPLIER]: 0,
@@ -34,9 +35,9 @@ const App: React.FC = () => {
           // Ensure unlocking array exists if loading old save
           unlockedCharacters: parsed.unlockedCharacters || ['DEFAULT'],
           selectedCharacterId: parsed.selectedCharacterId || 'DEFAULT',
-          // If totalCoins is missing/0 in old save, give 1000? No, respect save, 
-          // but if it's undefined, default to 1000.
-          totalCoins: parsed.totalCoins !== undefined ? parsed.totalCoins : 1000
+          // If totalCoins is missing/0 in old save, default to 1000
+          totalCoins: parsed.totalCoins !== undefined ? parsed.totalCoins : 1000,
+          maxStageReached: parsed.maxStageReached || 1
         };
       } catch (e) {
         console.error("Failed to load save", e);
@@ -44,6 +45,13 @@ const App: React.FC = () => {
       }
     }
     return defaultData;
+  });
+
+  // Language State
+  const [language, setLanguage] = useState<Language>(() => {
+      const browserLang = navigator.language.toUpperCase();
+      if (browserLang.includes('IT')) return 'IT';
+      return 'EN';
   });
 
   // Auto-save whenever persistentData changes
@@ -213,6 +221,15 @@ const App: React.FC = () => {
       // If score >= threshold, we finish the stage.
       if (newScore >= threshold && prev.status === GameStatus.PLAYING) {
          const nextLevel = prev.level + 1;
+         
+         // Update max stage reached if this new level is higher
+         setPersistentData(curr => {
+             if (nextLevel > curr.maxStageReached) {
+                 return { ...curr, maxStageReached: nextLevel };
+             }
+             return curr;
+         });
+
          return {
            ...prev,
            score: newScore,
@@ -303,6 +320,8 @@ const App: React.FC = () => {
       <UIOverlay
         gameState={gameState}
         persistentData={persistentData}
+        language={language}
+        setLanguage={setLanguage}
         onStart={startGame}
         onRestart={startGame}
         onOpenStore={openStore}

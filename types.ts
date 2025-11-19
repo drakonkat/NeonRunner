@@ -6,7 +6,7 @@ export enum GameStatus {
   GAME_OVER = 'GAME_OVER',
   LEVEL_COMPLETE = 'LEVEL_COMPLETE',
   STORE = 'STORE',
-  CHARACTER_SELECT = 'CHARACTER_SELECT', // New State
+  CHARACTER_SELECT = 'CHARACTER_SELECT', 
   LEVEL_UP_CHOICE = 'LEVEL_UP_CHOICE'
 }
 
@@ -14,6 +14,13 @@ export enum Lane {
   LEFT = -1,
   CENTER = 0,
   RIGHT = 1
+}
+
+export type Language = 'EN' | 'IT';
+
+export interface LocalizedText {
+  en: string;
+  it: string;
 }
 
 export type Difficulty = 'SCRIPT_KIDDIE' | 'CYBER_PUNK' | 'NET_RUNNER';
@@ -42,8 +49,8 @@ export type GlitchType =
 
 export interface GlitchMod {
   id: GlitchType;
-  title: string;
-  description: string;
+  title: LocalizedText;
+  description: LocalizedText;
   icon: string;
   rarity: 'COMMON' | 'RARE' | 'LEGENDARY' | 'CURSED';
 }
@@ -52,28 +59,28 @@ export type SkillType = 'DASH' | 'BLAST' | 'CLONE' | 'MAGNET' | 'SLOW_MO' | 'ALC
 
 export interface Character {
   id: string;
-  name: string;
-  description: string; 
+  name: LocalizedText;
+  description: LocalizedText; 
   color: string;
   emissive: string;
   shape: 'BOX' | 'SPHERE' | 'TETRA'; 
   unlockCost: number;
   skillId: SkillType;
-  skillName: string;
-  skillDescription: string; // Added description field
+  skillName: LocalizedText;
+  skillDescription: LocalizedText; 
   skillCooldown: number; // in seconds
   skillDuration?: number; // in seconds (if applicable)
 }
 
 export interface NarrativeOption {
-  text: string;
+  text: LocalizedText;
   glitchId: GlitchType;
-  flavorResult: string;
+  flavorResult: LocalizedText;
 }
 
 export interface NarrativeScenario {
   id: string;
-  question: string;
+  question: LocalizedText;
   options: NarrativeOption[];
 }
 
@@ -86,6 +93,7 @@ export interface UpgradeLevels {
 export interface PersistentData {
   totalCoins: number;
   highScore: number;
+  maxStageReached: number; // Tracks the highest level ever reached for story unlocking
   upgrades: UpgradeLevels;
   selectedCharacterId: string; 
   unlockedCharacters: string[]; 

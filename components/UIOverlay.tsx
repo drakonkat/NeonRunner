@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
-import { GameStatus, GameState, PowerUpType, PersistentData, NarrativeScenario, Difficulty } from '../types';
-import { LEVELS, COLORS, UPGRADE_CONFIG, LORE_TEXT, INFINITE_SCALING, NARRATIVE_SCENARIOS, GLITCH_MODS, LEVEL_END_LORE, DIFFICULTY_MODS, CHARACTERS } from '../constants';
+import { GameStatus, GameState, PowerUpType, PersistentData, NarrativeScenario, Difficulty, Language, LocalizedText } from '../types';
+import { LEVELS, COLORS, UPGRADE_CONFIG, LORE_TEXT, INFINITE_SCALING, NARRATIVE_SCENARIOS, GLITCH_MODS, LEVEL_END_LORE, DIFFICULTY_MODS, CHARACTERS, UI_TEXT, CHARACTER_STORIES } from '../constants';
 
 interface UIOverlayProps {
   gameState: GameState;
   persistentData: PersistentData;
+  language: Language;
+  setLanguage: (lang: Language) => void;
   onStart: () => void;
   onRestart: () => void;
   onOpenStore: () => void;
@@ -23,6 +25,8 @@ interface UIOverlayProps {
 const UIOverlay: React.FC<UIOverlayProps> = ({ 
   gameState, 
   persistentData, 
+  language,
+  setLanguage,
   onStart, 
   onRestart,
   onOpenStore,
@@ -38,6 +42,15 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 }) => {
   const [activeScenario, setActiveScenario] = useState<NarrativeScenario | null>(null);
   const [chosenFlavor, setChosenFlavor] = useState<string | null>(null);
+  const [loreCharacterId, setLoreCharacterId] = useState<string | null>(null); // Track which char story is open
+
+  // Helper for localization
+  const t = (content: LocalizedText | undefined) => {
+      if (!content) return "???";
+      return content[language === 'IT' ? 'it' : 'en'];
+  };
+  
+  const txt = (key: keyof typeof UI_TEXT) => t(UI_TEXT[key]);
 
   // Pick a random scenario when entering Level Up Choice
   useEffect(() => {
@@ -70,8 +83,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   // Lore State
   const [showLore, setShowLore] = useState(false);
-  const loreIndex = Math.min(gameState.level - 1, LORE_TEXT.length - 1);
-  const activeLore = LORE_TEXT[loreIndex] || LORE_TEXT[LORE_TEXT.length - 1];
+  
+  // Get lore list based on language
+  const currentLoreList = language === 'IT' ? LORE_TEXT.it : LORE_TEXT.en;
+  const loreIndex = Math.min(gameState.level - 1, currentLoreList.length - 1);
+  const activeLore = currentLoreList[loreIndex] || currentLoreList[currentLoreList.length - 1];
 
   useEffect(() => {
       if (gameState.status === GameStatus.PLAYING) {
@@ -88,23 +104,74 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   const getGlitchInfo = (id: string) => GLITCH_MODS.find(g => g.id === id);
 
+  // --- LORE MODAL ---
+  const renderLoreModal = () => {
+      if (!loreCharacterId) return null;
+      const char = CHARACTERS.find(c => c.id === loreCharacterId);
+      const storyData = CHARACTER_STORIES[loreCharacterId];
+      if (!char || !storyData) return null;
+
+      return (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 p-4 animate-in zoom-in duration-200">
+              <div className="bg-slate-900 border-2 border-cyan-500/50 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(34,211,238,0.1)] relative flex flex-col">
+                  <div className="sticky top-0 bg-slate-900/95 p-4 border-b border-cyan-900 flex justify-between items-center z-10">
+                      <h2 className="text-xl font-mono text-cyan-400 font-bold uppercase">{t(storyData.title)}</h2>
+                      <button 
+                        onClick={() => setLoreCharacterId(null)}
+                        className="text-red-400 font-bold hover:text-red-300"
+                      >
+                          [X] {txt('CLOSE')}
+                      </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-6">
+                      {storyData.chapters.map((chapter, idx) => {
+                          const isUnlocked = persistentData.maxStageReached >= (idx + 1);
+                          const stageReq = idx + 1;
+                          return (
+                              <div key={idx} className={`border-l-2 pl-4 py-2 ${isUnlocked ? 'border-cyan-500' : 'border-gray-700'}`}>
+                                  <div className="text-xs font-bold mb-1 font-mono uppercase tracking-wider" style={{ color: isUnlocked ? char.color : '#555' }}>
+                                      Stage {stageReq} {isUnlocked ? ' // DECRYPTED' : ' // ENCRYPTED'}
+                                  </div>
+                                  {isUnlocked ? (
+                                      <p className="text-gray-200 font-mono leading-relaxed text-sm md:text-base">{t(chapter)}</p>
+                                  ) : (
+                                      <p className="text-gray-600 font-mono text-xs bg-black/30 p-2 rounded">
+                                         ⚠ {txt('LOCKED_CHAPTER').replace('{0}', stageReq.toString())} ⚠
+                                         <br/>
+                                         ██████ ████ █████████ ███ ████
+                                      </p>
+                                  )}
+                              </div>
+                          )
+                      })}
+                  </div>
+
+                  <div className="p-4 border-t border-cyan-900 bg-black/20 text-center">
+                      <p className="text-xs text-gray-500 font-mono">Max Stage Reached: {persistentData.maxStageReached}</p>
+                  </div>
+              </div>
+          </div>
+      )
+  }
+
   // --- PAUSED SCREEN ---
   if (gameState.status === GameStatus.PAUSED) {
     return (
       <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md text-white p-6 text-center animate-in fade-in duration-200">
-        <h2 className="text-5xl font-bold text-cyan-400 mb-8 animate-pulse">PAUSED</h2>
+        <h2 className="text-5xl font-bold text-cyan-400 mb-8 animate-pulse">{txt('PAUSED')}</h2>
         <div className="space-y-4 w-64">
           <button
             onClick={onResume}
             className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)]"
           >
-            RESUME
+            {txt('RESUME')}
           </button>
           <button
             onClick={onBackToMenu}
             className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl"
           >
-            BACK TO MENU
+            {txt('BACK_TO_MENU')}
           </button>
         </div>
       </div>
@@ -121,23 +188,23 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-6 animate-in fade-in duration-500">
             <div className="max-w-2xl w-full border-t-4 border-b-4 border-cyan-500 bg-black/80 backdrop-blur-lg p-8 text-center shadow-[0_0_100px_rgba(6,182,212,0.2)]">
                 <h1 className="text-4xl md:text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white mb-2">
-                    STAGE CLEARED
+                    {txt('STAGE_CLEARED')}
                 </h1>
                 <div className="w-full h-px bg-gray-700 my-6"></div>
                 
                 <h2 className="text-cyan-500 font-mono font-bold tracking-widest mb-4 text-sm md:text-base uppercase">
-                    > SYSTEM LOG: {story.title}
+                    {txt('SYSTEM_LOG')}: {t(story.title)}
                 </h2>
                 
                 <p className="text-lg md:text-2xl font-medium leading-relaxed text-gray-200 mb-10">
-                    "{story.text}"
+                    "{t(story.text)}"
                 </p>
 
                 <button 
                     onClick={onNextLevel}
                     className="px-8 py-4 bg-white text-black font-black text-xl hover:bg-cyan-400 transition-all transform hover:scale-105 rounded-sm uppercase tracking-wider"
                 >
-                    Proceed to System Check
+                    {txt('PROCEED')}
                 </button>
             </div>
         </div>
@@ -150,7 +217,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         return (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black p-4 animate-in zoom-in duration-300">
                 <h2 className="text-3xl md:text-5xl font-black text-white text-center italic mb-4 glitch-text">
-                    SISTEMA AGGIORNATO
+                    {txt('SYSTEM_UPDATED')}
                 </h2>
                  <p className="text-xl md:text-2xl text-cyan-400 font-mono text-center max-w-2xl">
                     {`> ${chosenFlavor}`}
@@ -165,25 +232,25 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 bg-[length:100%_4px,6px_100%]"></div>
             
             <h2 className="text-green-500 text-xs md:text-sm tracking-widest mb-6 uppercase border-b border-green-900 pb-2 z-10 relative">
-                > CRITICAL DECISION REQUIRED_
+                {txt('CRITICAL_DECISION')}
             </h2>
 
             <p className="text-xl md:text-3xl font-bold mb-10 leading-relaxed z-10 relative">
-              "{activeScenario.question}"
+              "{t(activeScenario.question)}"
             </p>
 
             <div className="grid gap-4 z-10 relative">
                 {activeScenario.options.map((option, idx) => (
                     <button
                         key={idx}
-                        onClick={() => handleAnswer(option.glitchId, option.flavorResult)}
+                        onClick={() => handleAnswer(option.glitchId, t(option.flavorResult))}
                         className="text-left p-4 border border-green-800 hover:bg-green-900/30 hover:border-green-400 transition-all group flex items-center gap-4"
                     >
                         <span className="bg-green-900 text-green-300 px-2 py-1 text-xs font-bold group-hover:bg-green-400 group-hover:text-black">
                             {String.fromCharCode(65 + idx)}
                         </span>
                         <span className="text-gray-300 group-hover:text-white md:text-lg">
-                            {option.text}
+                            {t(option.text)}
                         </span>
                     </button>
                 ))}
@@ -203,7 +270,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
          <div className="w-full max-w-md">
            <div className="flex justify-between items-center mb-8">
              <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 italic">
-               UPGRADES
+               {txt('UPGRADES')}
              </h2>
              <div className="bg-slate-800 px-4 py-2 rounded-full flex items-center gap-2 border border-yellow-500/30">
                <span className="text-yellow-400 text-xl">●</span>
@@ -217,7 +284,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                const isMax = level >= UPGRADE_CONFIG.MAX_LEVEL;
                const cost = getUpgradeCost(type);
                const canAfford = persistentData.totalCoins >= cost;
-               
+               const name = t(UPGRADE_CONFIG.NAMES[type]);
+
                return (
                  <div key={type} className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between">
                    <div className="flex items-center gap-4">
@@ -225,13 +293,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                        <span className="text-xs font-bold text-black">{level}</span>
                      </div>
                      <div>
-                       <div className="font-bold text-lg">{UPGRADE_CONFIG.NAMES[type]}</div>
-                       <div className="text-xs text-gray-400">Base Level: {level} / {UPGRADE_CONFIG.MAX_LEVEL}</div>
+                       <div className="font-bold text-lg">{name}</div>
+                       <div className="text-xs text-gray-400">{txt('BASE_LEVEL')}: {level} / {UPGRADE_CONFIG.MAX_LEVEL}</div>
                      </div>
                    </div>
                    
                    {isMax ? (
-                     <span className="text-green-400 font-bold px-4">MAXED</span>
+                     <span className="text-green-400 font-bold px-4">{txt('MAXED')}</span>
                    ) : (
                      <button 
                        onClick={() => onBuyUpgrade(type)}
@@ -253,7 +321,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
              onClick={onBackToMenu}
              className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors"
            >
-             BACK TO MENU
+             {txt('BACK_TO_MENU')}
            </button>
          </div>
        </div>
@@ -264,9 +332,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   if (gameState.status === GameStatus.CHARACTER_SELECT) {
       return (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md text-white p-4">
+            {renderLoreModal()}
             <div className="w-full max-w-5xl h-full flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 className="text-2xl md:text-4xl font-black italic text-cyan-400">SELECT FIGHTER</h2>
+                    <h2 className="text-2xl md:text-4xl font-black italic text-cyan-400">{txt('SELECT_FIGHTER')}</h2>
                     <div className="bg-slate-800 px-4 py-2 rounded-full flex items-center gap-2 border border-yellow-500/30">
                         <span className="text-yellow-400 text-lg">●</span>
                         <span className="font-mono font-bold text-lg">{persistentData.totalCoins}</span>
@@ -284,7 +353,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                                 key={char.id}
                                 onClick={() => {
                                     if (isUnlocked) onSelectCharacter(char.id);
-                                    else if (canAfford) onSelectCharacter(char.id); // Buy logic is handled in parent, we just signal intent
+                                    else if (canAfford) onSelectCharacter(char.id); 
                                 }}
                                 className={`
                                     relative rounded-xl p-4 border-2 transition-all cursor-pointer flex flex-col h-full
@@ -302,27 +371,42 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                                     {isSelected && <div className="bg-cyan-500 text-black text-[10px] font-bold px-2 py-1 rounded">SELECTED</div>}
                                 </div>
                                 
-                                <h3 className="text-xl font-bold text-white mb-1">{char.name}</h3>
-                                <p className="text-xs text-gray-400 mb-2 italic leading-relaxed flex-grow">{char.description}</p>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-bold text-white mb-1">{t(char.name)}</h3>
+                                    {/* LORE BUTTON */}
+                                    {isUnlocked && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLoreCharacterId(char.id);
+                                            }}
+                                            className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded border border-gray-500 font-mono"
+                                        >
+                                            📖 {txt('READ_LORE')}
+                                        </button>
+                                    )}
+                                </div>
+
+                                <p className="text-xs text-gray-400 mb-2 italic leading-relaxed flex-grow">{t(char.description)}</p>
                                 
                                 {/* Skill Info Block */}
                                 <div className="mt-2 text-xs bg-black/40 p-2 rounded border border-cyan-500/20">
                                     <div className="font-bold text-cyan-300 uppercase mb-1 flex justify-between">
-                                        <span>★ {char.skillName}</span>
+                                        <span>★ {t(char.skillName)}</span>
                                         <span>{char.skillCooldown}s CD</span>
                                     </div>
-                                    <p className="text-gray-500">{char.skillDescription}</p>
+                                    <p className="text-gray-500">{t(char.skillDescription)}</p>
                                 </div>
 
                                 {!isUnlocked ? (
                                     <button 
                                         className={`w-full py-2 rounded font-bold text-sm mt-4 ${canAfford ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'bg-gray-600 text-gray-400'}`}
                                     >
-                                        UNLOCK {char.unlockCost} ●
+                                        {txt('UNLOCK')} {char.unlockCost} ●
                                     </button>
                                 ) : (
                                     <div className="text-center text-xs text-green-400 font-mono mt-4 uppercase tracking-widest">
-                                        {isSelected ? 'READY' : 'CLICK TO SELECT'}
+                                        {isSelected ? txt('READY') : txt('CLICK_TO_SELECT')}
                                     </div>
                                 )}
                             </div>
@@ -335,7 +419,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                         onClick={onBackToMenu}
                         className="w-full max-w-md py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors shadow-lg"
                     >
-                        BACK TO MENU
+                        {txt('BACK_TO_MENU')}
                     </button>
                  </div>
             </div>
@@ -350,16 +434,32 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           NEON RUNNER
         </h1>
         <h2 className="text-2xl font-bold text-pink-500 italic mb-4 rotate-[-2deg]">CHAOS EDITION</h2>
-        <p className="text-gray-300 mb-6 text-lg">Rispondi. Corri. <span className="text-red-400 font-bold">GLITCH.</span></p>
+        <p className="text-gray-300 mb-6 text-lg">{txt('SUBTITLE')} <span className="text-red-400 font-bold">GLITCH.</span></p>
         
+        {/* LANGUAGE SWITCHER */}
+        <div className="absolute top-6 right-6 flex gap-2">
+            <button 
+                onClick={() => setLanguage('EN')} 
+                className={`px-3 py-1 font-bold rounded border border-white/30 ${language === 'EN' ? 'bg-cyan-500 text-black' : 'bg-black text-gray-400'}`}
+            >
+                EN
+            </button>
+            <button 
+                onClick={() => setLanguage('IT')} 
+                className={`px-3 py-1 font-bold rounded border border-white/30 ${language === 'IT' ? 'bg-cyan-500 text-black' : 'bg-black text-gray-400'}`}
+            >
+                IT
+            </button>
+        </div>
+
         <div className="mb-6 bg-white/10 px-6 py-2 rounded-full flex items-center gap-2">
-           <span className="text-xs text-gray-400 uppercase">High Score</span>
+           <span className="text-xs text-gray-400 uppercase">{txt('HIGH_SCORE')}</span>
            <span className="font-mono font-bold text-xl text-cyan-400">{persistentData.highScore}</span>
         </div>
 
         {/* DIFFICULTY SELECTOR */}
         <div className="mb-6 w-full max-w-sm">
-          <div className="text-xs text-gray-500 mb-2 font-mono tracking-widest">SELECT DIFFICULTY</div>
+          <div className="text-xs text-gray-500 mb-2 font-mono tracking-widest">{txt('SELECT_DIFFICULTY')}</div>
           <div className="flex gap-2">
             {(Object.keys(DIFFICULTY_MODS) as Difficulty[]).map((key) => {
                const conf = DIFFICULTY_MODS[key];
@@ -379,7 +479,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                         borderColor: isSelected ? conf.color : '#374151'
                     }}
                   >
-                    {conf.label}
+                    {t(conf.label)}
                   </button>
                )
             })}
@@ -391,7 +491,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             onClick={onStart}
             className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)]"
           >
-            START RUN
+            {txt('START_RUN')}
           </button>
 
            {/* CHARACTER BUTTON */}
@@ -399,15 +499,17 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             onClick={onOpenCharacterSelect}
             className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-lg transition-all border border-pink-400/50 flex items-center justify-center gap-2"
           >
-            <span>CHARACTERS</span>
-            <span className="text-xs bg-black/30 px-2 py-1 rounded">{persistentData.selectedCharacterId === 'DEFAULT' ? 'NEON' : 'CUSTOM'}</span>
+            <span>{txt('CHARACTERS')}</span>
+            <span className="text-xs bg-black/30 px-2 py-1 rounded">
+                {persistentData.selectedCharacterId === 'DEFAULT' ? 'NEON' : 'CUSTOM'}
+            </span>
           </button>
           
           <button
             onClick={onOpenStore}
             className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-lg transition-all border border-purple-400/50"
           >
-            UPGRADES ({persistentData.totalCoins} ●)
+            {txt('UPGRADES')} ({persistentData.totalCoins} ●)
           </button>
         </div>
       </div>
@@ -417,36 +519,36 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   if (gameState.status === GameStatus.GAME_OVER) {
     return (
       <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md text-white p-6 text-center">
-        <h2 className="text-5xl font-bold text-red-500 mb-4">CRITICAL FAILURE</h2>
+        <h2 className="text-5xl font-bold text-red-500 mb-4">{txt('CRITICAL_FAILURE')}</h2>
         <div className="bg-white/10 p-6 rounded-2xl mb-8 w-72">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-gray-400">SCORE</span>
+            <span className="text-sm text-gray-400">{txt('SCORE')}</span>
             <span className="font-mono font-bold text-xl text-white">{gameState.score}</span>
           </div>
           
           <div className="flex justify-between mb-2">
             <span className="text-sm text-gray-400">DIFFICULTY</span>
             <span className="font-mono font-bold text-xs text-white" style={{ color: DIFFICULTY_MODS[gameState.difficulty].color }}>
-                {DIFFICULTY_MODS[gameState.difficulty].label}
+                {t(DIFFICULTY_MODS[gameState.difficulty].label)}
             </span>
           </div>
 
           <div className="w-full h-px bg-gray-600 my-4"></div>
 
           <div className="text-left mb-4">
-             <span className="text-xs text-gray-400 uppercase mb-1 block">Active Glitches</span>
+             <span className="text-xs text-gray-400 uppercase mb-1 block">{txt('ACTIVE_GLITCHES')}</span>
              <div className="flex flex-wrap gap-1">
-                 {gameState.activeGlitches.length === 0 ? <span className="text-gray-600 text-xs italic">None</span> :
+                 {gameState.activeGlitches.length === 0 ? <span className="text-gray-600 text-xs italic">{txt('NONE')}</span> :
                    gameState.activeGlitches.map(g => {
                        const info = getGlitchInfo(g);
-                       return <span key={g} className="text-[10px] px-2 py-1 bg-red-500/20 border border-red-500 rounded text-red-300" title={info?.description}>{info?.icon} {info?.title}</span>
+                       return <span key={g} className="text-[10px] px-2 py-1 bg-red-500/20 border border-red-500 rounded text-red-300" title={t(info?.description)}>{info?.icon} {t(info?.title)}</span>
                    })
                  }
              </div>
           </div>
           
           <div className="flex justify-between items-center pt-2 border-t border-gray-600">
-             <span className="text-sm text-gray-400">TOTAL WALLET</span>
+             <span className="text-sm text-gray-400">{txt('TOTAL_WALLET')}</span>
              <div className="flex items-center gap-1 text-yellow-500 font-bold">
                <span>{persistentData.totalCoins}</span>
                <span className="text-xs">●</span>
@@ -470,7 +572,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             onClick={onRestart}
             className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
           >
-            REBOOT SYSTEM
+            {txt('REBOOT')}
           </button>
         </div>
       </div>
@@ -499,7 +601,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             <div className="text-4xl font-black text-white italic drop-shadow-md font-mono leading-none">
                 {gameState.score.toString().padStart(5, '0')}
             </div>
-            <div className="text-xs text-cyan-300 font-bold uppercase tracking-widest">Score</div>
+            <div className="text-xs text-cyan-300 font-bold uppercase tracking-widest">{txt('SCORE')}</div>
             </div>
             
             <div className="flex items-center gap-2 bg-black/40 backdrop-blur px-3 py-1 rounded-full self-start border border-white/10">
@@ -510,7 +612,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             {/* Glitch List Mini */}
             <div className="mt-2 flex flex-col gap-1 opacity-80">
                  <div className="text-[9px] font-bold tracking-widest text-gray-500 uppercase">
-                     {DIFFICULTY_MODS[gameState.difficulty].label}
+                     {t(DIFFICULTY_MODS[gameState.difficulty].label)}
                  </div>
                 {gameState.activeGlitches.map((g, i) => (
                     <span key={i} className="text-[10px] font-bold text-red-400 bg-black/50 px-2 rounded self-start border-l-2 border-red-500">
