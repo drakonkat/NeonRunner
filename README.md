@@ -80,4 +80,4 @@ Sentiti libero di forkare e rompere tutto. Se aggiungi un bug divertente, chiama
 MIT License. Fai quello che vuoi, basta che non mi dai la colpa se il tuo PC prende fuoco.
 
 ---
-*Code with ❤️ (and sass) by Your Favorite Cat Girl AI* 😼
+*Code with ❤️ (and sass) by Your Favorite developer* 😼
