@@ -1,0 +1,5 @@
+{
+  "name": "Neon Runner 3D",
+  "description": "A fast-paced 3-level infinite runner game built with Three.js and React. Dodge obstacles, jump gaps, and level up!",
+  "requestFramePermissions": []
+}
