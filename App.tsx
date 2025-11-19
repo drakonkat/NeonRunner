@@ -16,6 +16,7 @@ const App: React.FC = () => {
       totalCoins: 1000, // Start with 1000 coins
       highScore: 0,
       maxStageReached: 1,
+      characterStageRecords: { 'DEFAULT': 1 }, // Default char starts at 1
       upgrades: {
         [PowerUpType.SHIELD]: 0,
         [PowerUpType.MULTIPLIER]: 0,
@@ -37,7 +38,9 @@ const App: React.FC = () => {
           selectedCharacterId: parsed.selectedCharacterId || 'DEFAULT',
           // If totalCoins is missing/0 in old save, default to 1000
           totalCoins: parsed.totalCoins !== undefined ? parsed.totalCoins : 1000,
-          maxStageReached: parsed.maxStageReached || 1
+          maxStageReached: parsed.maxStageReached || 1,
+          // Migration for per-character records
+          characterStageRecords: parsed.characterStageRecords || { 'DEFAULT': parsed.maxStageReached || 1 }
         };
       } catch (e) {
         console.error("Failed to load save", e);
@@ -222,12 +225,28 @@ const App: React.FC = () => {
       if (newScore >= threshold && prev.status === GameStatus.PLAYING) {
          const nextLevel = prev.level + 1;
          
-         // Update max stage reached if this new level is higher
+         // Update character specific record and global record
          setPersistentData(curr => {
-             if (nextLevel > curr.maxStageReached) {
-                 return { ...curr, maxStageReached: nextLevel };
+             const charId = curr.selectedCharacterId;
+             const currentRecord = curr.characterStageRecords[charId] || 1;
+             let newRecords = { ...curr.characterStageRecords };
+             
+             let globalMax = curr.maxStageReached;
+
+             // Only update if we exceeded the previous record for THIS character
+             if (nextLevel > currentRecord) {
+                 newRecords[charId] = nextLevel;
              }
-             return curr;
+             
+             if (nextLevel > globalMax) {
+                 globalMax = nextLevel;
+             }
+
+             return { 
+                 ...curr, 
+                 maxStageReached: globalMax,
+                 characterStageRecords: newRecords
+             };
          });
 
          return {

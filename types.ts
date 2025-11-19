@@ -93,7 +93,8 @@ export interface UpgradeLevels {
 export interface PersistentData {
   totalCoins: number;
   highScore: number;
-  maxStageReached: number; // Tracks the highest level ever reached for story unlocking
+  maxStageReached: number; // Global record (for stats)
+  characterStageRecords: Record<string, number>; // Per-character max stage (for story)
   upgrades: UpgradeLevels;
   selectedCharacterId: string; 
   unlockedCharacters: string[]; 

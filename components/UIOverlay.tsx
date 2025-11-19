@@ -111,6 +111,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       const storyData = CHARACTER_STORIES[loreCharacterId];
       if (!char || !storyData) return null;
 
+      const characterProgress = persistentData.characterStageRecords[loreCharacterId] || 1;
+
       return (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 p-4 animate-in zoom-in duration-200">
               <div className="bg-slate-900 border-2 border-cyan-500/50 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(34,211,238,0.1)] relative flex flex-col">
@@ -126,7 +128,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                   
                   <div className="p-6 space-y-6">
                       {storyData.chapters.map((chapter, idx) => {
-                          const isUnlocked = persistentData.maxStageReached >= (idx + 1);
+                          const isUnlocked = characterProgress >= (idx + 1);
                           const stageReq = idx + 1;
                           return (
                               <div key={idx} className={`border-l-2 pl-4 py-2 ${isUnlocked ? 'border-cyan-500' : 'border-gray-700'}`}>
@@ -148,7 +150,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                   </div>
 
                   <div className="p-4 border-t border-cyan-900 bg-black/20 text-center">
-                      <p className="text-xs text-gray-500 font-mono">Max Stage Reached: {persistentData.maxStageReached}</p>
+                      <p className="text-xs text-gray-500 font-mono uppercase">
+                          {t(char.name)} Record: Stage {characterProgress}
+                      </p>
                   </div>
               </div>
           </div>
