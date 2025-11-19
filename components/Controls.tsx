@@ -17,35 +17,40 @@ const Controls: React.FC<ControlsProps> = ({ onAction, skillProgress, isSkillRea
   };
 
   return (
-    // Increased bottom padding to bottom-16 for mobile browsers with bottom bars
-    <div className="absolute bottom-16 md:bottom-8 left-0 right-0 flex justify-between px-6 gap-4 z-20 select-none">
+    // Updated for better mobile support with safe areas and increased bottom clearance
+    // pointer-events-none allows clicks to pass through the empty container space
+    <div 
+      className="absolute left-0 right-0 flex justify-between px-2 md:px-6 gap-2 z-20 select-none pointer-events-none"
+      style={{ bottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+    >
       {/* LEFT / RIGHT */}
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-2 md:gap-4 items-end pointer-events-auto pb-1">
         <button
-          className="w-20 h-20 bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-full active:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
+          className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-full active:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
           onPointerDown={handleTouch('LEFT')}
           aria-label="Move Left"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-10 h-10">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-8 h-8 md:w-10 md:h-10">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
         </button>
         
         <button
-          className="w-20 h-20 bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-full active:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
+          className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-full active:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
           onPointerDown={handleTouch('RIGHT')}
           aria-label="Move Right"
         >
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-10 h-10">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-8 h-8 md:w-10 md:h-10">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
         </button>
       </div>
 
       {/* CENTER SKILL BUTTON */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-4">
+      {/* Positioned absolutely relative to screen center, slightly raised to form a pyramid shape */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6 pointer-events-auto">
           <button
-            className={`w-24 h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-xl relative overflow-hidden
+            className={`w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-xl relative overflow-hidden
               ${isSkillReady 
                   ? 'bg-yellow-500 border-yellow-300 shadow-[0_0_30px_rgba(234,179,8,0.6)] active:scale-95 animate-pulse' 
                   : 'bg-gray-800 border-gray-600 opacity-80'
@@ -66,30 +71,30 @@ const Controls: React.FC<ControlsProps> = ({ onAction, skillProgress, isSkillRea
              )}
 
              <div className="z-10 flex flex-col items-center">
-                <span className="text-2xl">{isSkillReady ? '⚡' : '⏳'}</span>
-                <span className="text-[10px] font-black text-white uppercase tracking-tighter">ULTIMATE</span>
+                <span className="text-xl md:text-2xl">{isSkillReady ? '⚡' : '⏳'}</span>
+                <span className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-tighter">ULTIMATE</span>
              </div>
           </button>
       </div>
 
       {/* ACTION BUTTONS */}
-      <div className="flex flex-col gap-4 items-end">
+      <div className="flex flex-col gap-2 md:gap-4 items-end pointer-events-auto pb-1">
         <button
-          className="w-20 h-20 bg-cyan-500/20 backdrop-blur-md border-2 border-cyan-400 rounded-full active:bg-cyan-500/40 active:scale-95 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.3)]"
+          className="w-16 h-16 md:w-20 md:h-20 bg-cyan-500/20 backdrop-blur-md border-2 border-cyan-400 rounded-full active:bg-cyan-500/40 active:scale-95 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.3)]"
           onPointerDown={handleTouch('JUMP')}
           aria-label="Jump"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-10 h-10">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-8 h-8 md:w-10 md:h-10">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
           </svg>
         </button>
 
         <button
-          className="w-20 h-20 bg-purple-500/20 backdrop-blur-md border-2 border-purple-400 rounded-full active:bg-purple-500/40 active:scale-95 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+          className="w-16 h-16 md:w-20 md:h-20 bg-purple-500/20 backdrop-blur-md border-2 border-purple-400 rounded-full active:bg-purple-500/40 active:scale-95 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)]"
           onPointerDown={handleTouch('SLIDE')}
           aria-label="Slide"
         >
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-10 h-10">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-8 h-8 md:w-10 md:h-10">
              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
            </svg>
         </button>

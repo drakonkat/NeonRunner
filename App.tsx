@@ -402,7 +402,7 @@ const App: React.FC = () => {
   const skillProgressUI = skillState.max > 0 ? 1 - (skillState.current / skillState.max) : 1;
 
   return (
-    <div className="w-full h-screen overflow-hidden bg-black relative">
+    <div className="w-full h-[100dvh] overflow-hidden bg-black relative">
       <GameCanvas
         ref={gameRef}
         status={gameState.status}
