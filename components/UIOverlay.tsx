@@ -171,7 +171,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   useEffect(() => {
       if (gameState.status === GameStatus.PLAYING) {
           setShowLore(true);
-          const timer = setTimeout(() => setShowLore(false), 4000);
+          // Reduced duration from 4000 to 2000 to clear view faster
+          const timer = setTimeout(() => setShowLore(false), 2000);
           return () => clearTimeout(timer);
       }
   }, [gameState.level, gameState.status]);
@@ -196,10 +197,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   if (showSettings) {
       const cSettings = persistentData.controlSettings;
       return (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-6 animate-in fade-in duration-200">
-              <h2 className="text-4xl font-bold text-cyan-400 mb-8 italic">{txt('SETTINGS')}</h2>
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-6 animate-in fade-in duration-200 overflow-y-auto">
+              <h2 className="text-4xl font-bold text-cyan-400 mb-8 italic landscape:mb-4 landscape:text-2xl">{txt('SETTINGS')}</h2>
               
-              <div className="w-full max-w-sm space-y-6 bg-white/5 p-6 rounded-xl border border-white/10">
+              <div className="w-full max-w-sm space-y-6 landscape:space-y-3 bg-white/5 p-6 landscape:p-4 rounded-xl border border-white/10">
                   
                   {/* LANGUAGE */}
                   <div className="flex justify-between items-center">
@@ -275,7 +276,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
               <button
                 onClick={() => setShowSettings(false)}
-                className="mt-8 px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors"
+                className="mt-8 landscape:mt-4 px-8 py-3 landscape:py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors"
               >
                 {txt('BACK_TO_MENU')}
               </button>
@@ -354,24 +355,23 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     // Normal pause menu with transparency
     return (
       <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm text-white p-6 text-center animate-in fade-in duration-200">
-        <h2 className="text-5xl font-bold text-cyan-400 mb-8 animate-pulse drop-shadow-[0_0_10px_rgba(0,0,0,1)]">{txt('PAUSED')}</h2>
-        <div className="space-y-4 w-64">
+        <h2 className="text-5xl font-bold text-cyan-400 mb-8 animate-pulse drop-shadow-[0_0_10px_rgba(0,0,0,1)] landscape:text-3xl landscape:mb-4">{txt('PAUSED')}</h2>
+        <div className="space-y-4 w-64 landscape:grid landscape:grid-cols-3 landscape:w-auto landscape:gap-4 landscape:space-y-0">
           <button
             onClick={handleResumeInitiate}
-            className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-300"
+            className="w-full py-4 landscape:py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl landscape:text-sm transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-300"
           >
             {txt('RESUME')}
-            <span className="block text-[10px] font-mono uppercase tracking-wider mt-1 opacity-60">[ENTER]</span>
           </button>
           <button
              onClick={() => setShowSettings(true)}
-             className="w-full py-3 bg-slate-800/80 hover:bg-slate-700 text-white font-bold rounded-xl border border-white/10 backdrop-blur-md"
+             className="w-full py-3 landscape:py-2 bg-slate-800/80 hover:bg-slate-700 text-white font-bold rounded-xl border border-white/10 backdrop-blur-md landscape:text-sm"
           >
              {txt('SETTINGS')}
           </button>
           <button
             onClick={onBackToMenu}
-            className="w-full py-3 bg-slate-800/80 hover:bg-slate-700 text-white font-bold rounded-xl border border-white/10 backdrop-blur-md"
+            className="w-full py-3 landscape:py-2 bg-slate-800/80 hover:bg-slate-700 text-white font-bold rounded-xl border border-white/10 backdrop-blur-md landscape:text-sm"
           >
             {txt('BACK_TO_MENU')}
           </button>
@@ -387,24 +387,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       const story = LEVEL_END_LORE[safeIndex];
 
       return (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-6 animate-in fade-in duration-500">
-            <div className="max-w-2xl w-full border-t-4 border-b-4 border-cyan-500 bg-black/80 backdrop-blur-lg p-8 text-center shadow-[0_0_100px_rgba(6,182,212,0.2)]">
-                <h1 className="text-4xl md:text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white mb-2">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-6 animate-in fade-in duration-500 overflow-y-auto">
+            <div className="max-w-2xl w-full border-t-4 border-b-4 border-cyan-500 bg-black/80 backdrop-blur-lg p-8 landscape:p-4 text-center shadow-[0_0_100px_rgba(6,182,212,0.2)]">
+                <h1 className="text-4xl md:text-6xl landscape:text-3xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white mb-2">
                     {txt('STAGE_CLEARED')}
                 </h1>
-                <div className="w-full h-px bg-gray-700 my-6"></div>
+                <div className="w-full h-px bg-gray-700 my-6 landscape:my-2"></div>
                 
-                <h2 className="text-cyan-500 font-mono font-bold tracking-widest mb-4 text-sm md:text-base uppercase">
+                <h2 className="text-cyan-500 font-mono font-bold tracking-widest mb-4 landscape:mb-2 text-sm md:text-base uppercase">
                     {txt('SYSTEM_LOG')}: {t(story.title)}
                 </h2>
                 
-                <p className="text-lg md:text-2xl font-medium leading-relaxed text-gray-200 mb-10">
+                <p className="text-lg md:text-2xl landscape:text-base font-medium leading-relaxed text-gray-200 mb-10 landscape:mb-4">
                     "{t(story.text)}"
                 </p>
 
                 <button 
                     onClick={onNextLevel}
-                    className="px-8 py-4 bg-white text-black font-black text-xl hover:bg-cyan-400 transition-all transform hover:scale-105 rounded-sm uppercase tracking-wider"
+                    className="px-8 py-4 landscape:py-2 bg-white text-black font-black text-xl landscape:text-lg hover:bg-cyan-400 transition-all transform hover:scale-105 rounded-sm uppercase tracking-wider"
                 >
                     {txt('PROCEED')}
                     <span className="block text-[10px] font-normal mt-1 opacity-60">[ENTER]</span>
@@ -422,22 +422,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center p-4 animate-in zoom-in duration-300 transition-all ${countdown !== null ? 'bg-black/10 backdrop-blur-sm' : 'bg-black'}`}>
                 
                 {/* Wrapper for text readability over 3D scene */}
-                <div className="flex flex-col items-center bg-black/40 p-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-                    <h2 className="text-3xl md:text-5xl font-black text-white text-center italic mb-4 glitch-text drop-shadow-lg">
+                <div className="flex flex-col items-center bg-black/40 p-8 landscape:p-4 rounded-3xl border border-white/10 backdrop-blur-md shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <h2 className="text-3xl md:text-5xl landscape:text-2xl font-black text-white text-center italic mb-4 landscape:mb-2 glitch-text drop-shadow-lg">
                         {txt('SYSTEM_UPDATED')}
                     </h2>
-                    <p className="text-xl md:text-2xl text-cyan-400 font-mono text-center max-w-2xl mb-10 drop-shadow-md">
+                    <p className="text-xl md:text-2xl landscape:text-lg text-cyan-400 font-mono text-center max-w-2xl mb-10 landscape:mb-4 drop-shadow-md">
                         {`> ${chosenFlavor}`}
                     </p>
                     
                     {/* COUNTDOWN DISPLAY */}
                     {countdown !== null && countdown > 0 && (
-                        <div className="text-9xl font-black text-white animate-pulse drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]">
+                        <div className="text-9xl landscape:text-6xl font-black text-white animate-pulse drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]">
                             {countdown}
                         </div>
                     )}
                     {countdown === 0 && (
-                        <div className="text-6xl font-black text-green-500 animate-bounce drop-shadow-[0_0_30px_rgba(34,197,94,0.8)]">
+                        <div className="text-6xl landscape:text-4xl font-black text-green-500 animate-bounce drop-shadow-[0_0_30px_rgba(34,197,94,0.8)]">
                             GO!
                         </div>
                     )}
@@ -447,24 +447,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     }
 
     return (
-      <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-4 animate-in fade-in duration-300 font-mono">
-        <div className="max-w-3xl w-full border-2 border-green-500/50 p-6 md:p-10 rounded-lg bg-black shadow-[0_0_50px_rgba(34,197,94,0.1)] relative overflow-hidden">
+      <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-4 animate-in fade-in duration-300 font-mono overflow-y-auto">
+        <div className="max-w-3xl w-full border-2 border-green-500/50 p-6 md:p-10 landscape:p-4 rounded-lg bg-black shadow-[0_0_50px_rgba(34,197,94,0.1)] relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 bg-[length:100%_4px,6px_100%]"></div>
             
-            <h2 className="text-green-500 text-xs md:text-sm tracking-widest mb-6 uppercase border-b border-green-900 pb-2 z-10 relative">
+            <h2 className="text-green-500 text-xs md:text-sm tracking-widest mb-6 landscape:mb-2 uppercase border-b border-green-900 pb-2 z-10 relative">
                 {txt('CRITICAL_DECISION')}
             </h2>
 
-            <p className="text-xl md:text-3xl font-bold mb-10 leading-relaxed z-10 relative">
+            <p className="text-xl md:text-3xl landscape:text-lg font-bold mb-10 landscape:mb-4 leading-relaxed z-10 relative">
               "{t(activeScenario.question)}"
             </p>
 
-            <div className="grid gap-4 z-10 relative">
+            <div className="grid gap-4 landscape:gap-2 z-10 relative">
                 {activeScenario.options.map((option, idx) => (
                     <button
                         key={idx}
                         onClick={() => handleAnswer(option.glitchId, t(option.flavorResult))}
-                        className="text-left p-4 border border-green-800 hover:bg-green-900/30 hover:border-green-400 transition-all group flex items-center gap-4"
+                        className="text-left p-4 landscape:p-2 border border-green-800 hover:bg-green-900/30 hover:border-green-400 transition-all group flex items-center gap-4"
                     >
                         <span className="bg-green-900 text-green-300 px-2 py-1 text-xs font-bold group-hover:bg-green-400 group-hover:text-black hidden md:inline-block">
                             [{idx + 1}]
@@ -474,7 +474,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                             {String.fromCharCode(65 + idx)}
                         </span>
 
-                        <span className="text-gray-300 group-hover:text-white md:text-lg">
+                        <span className="text-gray-300 group-hover:text-white md:text-lg landscape:text-sm">
                             {t(option.text)}
                         </span>
                     </button>
@@ -494,7 +494,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md text-white p-4">
          <div className="w-full max-w-md h-full flex flex-col">
            <div className="flex justify-between items-center mb-4 flex-shrink-0">
-             <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 italic">
+             <h2 className="text-3xl landscape:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 italic">
                STORE
              </h2>
              <div className="bg-slate-800 px-4 py-2 rounded-full flex items-center gap-2 border border-yellow-500/30">
@@ -504,7 +504,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
            </div>
 
            {/* TABS */}
-           <div className="flex gap-2 mb-6">
+           <div className="flex gap-2 mb-6 landscape:mb-2">
                <button 
                  onClick={() => setStoreTab('UPGRADES')}
                  className={`flex-1 py-2 font-bold rounded uppercase ${storeTab === 'UPGRADES' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-gray-400'}`}
@@ -519,7 +519,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                </button>
            </div>
 
-           <div className="space-y-4 mb-8 flex-grow overflow-y-auto">
+           <div className="space-y-4 landscape:space-y-2 mb-8 landscape:mb-2 flex-grow overflow-y-auto">
              {storeTab === 'UPGRADES' && [PowerUpType.SHIELD, PowerUpType.MULTIPLIER, PowerUpType.SPEED].map((type) => {
                const level = persistentData.upgrades[type] || 0;
                const isMax = level >= UPGRADE_CONFIG.MAX_LEVEL;
@@ -528,13 +528,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                const name = t(UPGRADE_CONFIG.NAMES[type]);
 
                return (
-                 <div key={type} className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between">
+                 <div key={type} className="bg-white/5 p-4 landscape:p-2 rounded-xl border border-white/10 flex items-center justify-between">
                    <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: COLORS.POWERUPS[type] }}>
+                     <div className="w-12 h-12 landscape:w-10 landscape:h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: COLORS.POWERUPS[type] }}>
                        <span className="text-xs font-bold text-black">{level}</span>
                      </div>
                      <div>
-                       <div className="font-bold text-lg">{name}</div>
+                       <div className="font-bold text-lg landscape:text-sm">{name}</div>
                        <div className="text-xs text-gray-400">{txt('BASE_LEVEL')}: {level} / {UPGRADE_CONFIG.MAX_LEVEL}</div>
                      </div>
                    </div>
@@ -563,13 +563,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                  const canAfford = persistentData.totalCoins >= track.cost;
 
                  return (
-                    <div key={track.id} className={`bg-white/5 p-4 rounded-xl border flex items-center justify-between ${isSelected ? 'border-cyan-400 bg-cyan-900/20' : 'border-white/10'}`}>
+                    <div key={track.id} className={`bg-white/5 p-4 landscape:p-2 rounded-xl border flex items-center justify-between ${isSelected ? 'border-cyan-400 bg-cyan-900/20' : 'border-white/10'}`}>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: track.color }}>
+                            <div className="w-12 h-12 landscape:w-10 landscape:h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: track.color }}>
                                 <span className="text-xl">🎵</span>
                             </div>
                             <div>
-                                <div className="font-bold text-lg">{t(track.name)}</div>
+                                <div className="font-bold text-lg landscape:text-sm">{t(track.name)}</div>
                                 <div className="text-xs text-gray-400 font-mono">{track.bpm} BPM</div>
                             </div>
                         </div>
@@ -600,7 +600,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
            <button
              onClick={onBackToMenu}
-             className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors mt-auto"
+             className="w-full py-4 landscape:py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors mt-auto"
            >
              {txt('BACK_TO_MENU')}
            </button>
@@ -616,14 +616,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             {renderLoreModal()}
             <div className="w-full max-w-5xl h-full flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 className="text-2xl md:text-4xl font-black italic text-cyan-400">{txt('SELECT_FIGHTER')}</h2>
+                    <h2 className="text-2xl md:text-4xl landscape:text-2xl font-black italic text-cyan-400">{txt('SELECT_FIGHTER')}</h2>
                     <div className="bg-slate-800 px-4 py-2 rounded-full flex items-center gap-2 border border-yellow-500/30">
                         <span className="text-yellow-400 text-lg">●</span>
                         <span className="font-mono font-bold text-lg">{persistentData.totalCoins}</span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto pb-20 flex-grow">
+                <div className="grid grid-cols-1 md:grid-cols-3 landscape:grid-cols-2 gap-4 overflow-y-auto pb-20 flex-grow">
                     {CHARACTERS.map((char) => {
                         const isUnlocked = persistentData.unlockedCharacters.includes(char.id);
                         const isSelected = persistentData.selectedCharacterId === char.id;
@@ -698,7 +698,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                  <div className="absolute bottom-4 left-0 right-0 px-4 flex justify-center">
                     <button
                         onClick={onBackToMenu}
-                        className="w-full max-w-md py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors shadow-lg"
+                        className="w-full max-w-md py-3 landscape:py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors shadow-lg"
                     >
                         {txt('BACK_TO_MENU')}
                     </button>
@@ -710,31 +710,32 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   if (gameState.status === GameStatus.IDLE) {
     return (
-      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm text-white p-6 text-center">
-        <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2 italic">
+      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm text-white p-6 landscape:p-2 text-center">
+        {/* IDLE SCREEN LANDSCAPE OPTIMIZATION */}
+        <h1 className="text-6xl landscape:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2 landscape:mb-0 italic">
           NEON RUNNER
         </h1>
-        <h2 className="text-2xl font-bold text-pink-500 italic mb-4 rotate-[-2deg]">CHAOS EDITION</h2>
-        <p className="text-gray-300 mb-6 text-lg">{txt('SUBTITLE')} <span className="text-red-400 font-bold">GLITCH.</span></p>
+        <h2 className="text-2xl landscape:text-lg font-bold text-pink-500 italic mb-4 landscape:mb-2 rotate-[-2deg]">CHAOS EDITION</h2>
+        <p className="text-gray-300 mb-6 landscape:mb-2 text-lg landscape:text-sm">{txt('SUBTITLE')} <span className="text-red-400 font-bold">GLITCH.</span></p>
         
-        {/* SETTINGS BUTTON (Replaces previous loose buttons) */}
-        <div className="absolute top-6 right-6 flex gap-2">
+        {/* SETTINGS BUTTON */}
+        <div className="absolute top-6 right-6 landscape:top-2 landscape:right-2 flex gap-2">
              <button 
                 onClick={() => setShowSettings(true)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 hover:bg-cyan-500 hover:text-black border border-white/20 transition-all"
+                className="w-10 h-10 landscape:w-8 landscape:h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-cyan-500 hover:text-black border border-white/20 transition-all"
                 title="Settings"
             >
                 ⚙️
             </button>
         </div>
 
-        <div className="mb-6 bg-white/10 px-6 py-2 rounded-full flex items-center gap-2">
+        <div className="mb-6 landscape:mb-2 bg-white/10 px-6 landscape:px-4 py-2 landscape:py-1 rounded-full flex items-center gap-2">
            <span className="text-xs text-gray-400 uppercase">{txt('HIGH_SCORE')}</span>
-           <span className="font-mono font-bold text-xl text-cyan-400">{persistentData.highScore}</span>
+           <span className="font-mono font-bold text-xl landscape:text-lg text-cyan-400">{persistentData.highScore}</span>
         </div>
 
         {/* DIFFICULTY SELECTOR */}
-        <div className="mb-6 w-full max-w-sm">
+        <div className="mb-6 landscape:mb-2 w-full max-w-sm">
           <div className="text-xs text-gray-500 mb-2 font-mono tracking-widest">{txt('SELECT_DIFFICULTY')}</div>
           <div className="flex gap-2">
             {(Object.keys(DIFFICULTY_MODS) as Difficulty[]).map((key) => {
@@ -762,10 +763,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
         </div>
 
-        <div className="space-y-4 w-64">
+        {/* Main Action Buttons - Landscape: Horizontal Row / Portrait: Vertical Stack */}
+        <div className="space-y-4 w-64 landscape:w-auto landscape:flex landscape:flex-row landscape:gap-4 landscape:space-y-0">
           <button
             onClick={onStart}
-            className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+            className="w-full py-4 landscape:py-2 landscape:px-6 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl landscape:text-base transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)]"
           >
             {txt('START_RUN')}
           </button>
@@ -773,7 +775,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
            {/* CHARACTER BUTTON */}
            <button
             onClick={onOpenCharacterSelect}
-            className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-lg transition-all border border-pink-400/50 flex items-center justify-center gap-2"
+            className="w-full py-3 landscape:py-2 landscape:px-4 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-lg landscape:text-sm transition-all border border-pink-400/50 flex items-center justify-center gap-2"
           >
             <span>{txt('CHARACTERS')}</span>
             <span className="text-xs bg-black/30 px-2 py-1 rounded">
@@ -783,9 +785,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           
           <button
             onClick={onOpenStore}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-lg transition-all border border-purple-400/50"
+            className="w-full py-3 landscape:py-2 landscape:px-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-lg landscape:text-sm transition-all border border-purple-400/50"
           >
-            {txt('UPGRADES')} ({persistentData.totalCoins} ●)
+            {txt('UPGRADES')} <span className="text-xs">({persistentData.totalCoins}●)</span>
           </button>
         </div>
       </div>
@@ -794,9 +796,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   if (gameState.status === GameStatus.GAME_OVER) {
     return (
-      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md text-white p-6 text-center">
-        <h2 className="text-5xl font-bold text-red-500 mb-4">{txt('CRITICAL_FAILURE')}</h2>
-        <div className="bg-white/10 p-6 rounded-2xl mb-8 w-72">
+      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md text-white p-6 landscape:p-2 text-center">
+        <h2 className="text-5xl landscape:text-3xl font-bold text-red-500 mb-4 landscape:mb-2">{txt('CRITICAL_FAILURE')}</h2>
+        <div className="bg-white/10 p-6 landscape:p-3 rounded-2xl mb-8 landscape:mb-2 w-72 landscape:w-96">
           <div className="flex justify-between mb-2">
             <span className="text-sm text-gray-400">{txt('SCORE')}</span>
             <span className="font-mono font-bold text-xl text-white">{gameState.score}</span>
@@ -809,9 +811,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             </span>
           </div>
 
-          <div className="w-full h-px bg-gray-600 my-4"></div>
+          <div className="w-full h-px bg-gray-600 my-4 landscape:my-2"></div>
 
-          <div className="text-left mb-4">
+          <div className="text-left mb-4 landscape:mb-2">
              <span className="text-xs text-gray-400 uppercase mb-1 block">{txt('ACTIVE_GLITCHES')}</span>
              <div className="flex flex-wrap gap-1">
                  {gameState.activeGlitches.length === 0 ? <span className="text-gray-600 text-xs italic">{txt('NONE')}</span> :
@@ -831,22 +833,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
              </div>
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 landscape:gap-2">
           <button
             onClick={onBackToMenu}
-            className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg"
+            className="px-6 py-3 landscape:px-4 landscape:py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg"
           >
             MENU
           </button>
           <button
             onClick={onOpenStore}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg"
+            className="px-6 py-3 landscape:px-4 landscape:py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg"
           >
             STORE
           </button>
           <button
             onClick={onRestart}
-            className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-8 py-3 landscape:px-6 landscape:py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
           >
             {txt('REBOOT')}
             <span className="block text-[10px] font-mono uppercase tracking-wider mt-1 opacity-60">[ENTER]</span>
@@ -861,47 +863,49 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     <>
         {/* Lore Display */}
         <div 
-            className={`absolute top-24 left-0 right-0 flex justify-center pointer-events-none z-20 transition-opacity duration-1000 ${showLore ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute top-24 landscape:top-4 left-0 right-0 flex justify-center pointer-events-none z-20 transition-opacity duration-1000 ${showLore ? 'opacity-100' : 'opacity-0'}`}
         >
-            <div className="bg-black/60 backdrop-blur border border-white/10 px-6 py-3 rounded-full">
-                <p className="text-cyan-300 font-mono font-bold text-sm md:text-base tracking-wider flex items-center gap-2">
+            <div className="bg-black/60 backdrop-blur border border-white/10 px-6 py-3 landscape:py-1 rounded-full">
+                <p className="text-cyan-300 font-mono font-bold text-sm md:text-base landscape:text-xs tracking-wider flex items-center gap-2">
                     <span className="animate-pulse">▋</span>
                     {activeLore}
                 </p>
             </div>
         </div>
 
-        <div className="absolute top-0 left-0 right-0 p-4 md:p-8 flex justify-between items-start z-20 pointer-events-none select-none">
+        <div className="absolute top-0 left-0 right-0 p-4 md:p-8 landscape:p-1 flex justify-between items-start z-20 pointer-events-none select-none">
         {/* Score & Coin Panel */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 landscape:gap-0">
             <div className="flex flex-col">
-            <div className="text-4xl font-black text-white italic drop-shadow-md font-mono leading-none">
+            <div className="text-4xl landscape:text-xl font-black text-white italic drop-shadow-md font-mono leading-none">
                 {gameState.score.toString().padStart(5, '0')}
             </div>
-            <div className="text-xs text-cyan-300 font-bold uppercase tracking-widest">{txt('SCORE')}</div>
+            <div className="text-xs text-cyan-300 font-bold uppercase tracking-widest landscape:text-[10px]">{txt('SCORE')}</div>
             </div>
             
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur px-3 py-1 rounded-full self-start border border-white/10">
+            <div className="flex items-center gap-2 bg-black/40 backdrop-blur px-3 py-1 landscape:py-0 rounded-full self-start border border-white/10 landscape:mt-1">
             <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]"></div>
-            <span className="font-mono font-bold text-yellow-100">{gameState.coinsCollected}</span>
+            <span className="font-mono font-bold text-yellow-100 landscape:text-xs">{gameState.coinsCollected}</span>
             </div>
 
             {/* Glitch List Mini */}
-            <div className="mt-2 flex flex-col gap-1 opacity-80">
+            <div className="mt-2 flex flex-col gap-1 opacity-80 landscape:mt-1">
                  <div className="text-[9px] font-bold tracking-widest text-gray-500 uppercase">
                      {t(DIFFICULTY_MODS[gameState.difficulty].label)}
                  </div>
-                {gameState.activeGlitches.map((g, i) => (
-                    <span key={i} className="text-[10px] font-bold text-red-400 bg-black/50 px-2 rounded self-start border-l-2 border-red-500">
-                        {g}
-                    </span>
-                ))}
+                <div className="flex flex-wrap gap-1">
+                    {gameState.activeGlitches.map((g, i) => (
+                        <span key={i} className="text-[10px] font-bold text-red-400 bg-black/50 px-2 rounded self-start border-l-2 border-red-500">
+                            {g}
+                        </span>
+                    ))}
+                </div>
             </div>
         </div>
 
         {/* Power Up Indicator */}
         {gameState.activePowerUp !== PowerUpType.NONE && (
-            <div className="absolute top-32 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce">
+            <div className="absolute top-32 landscape:top-16 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce">
             <div 
                 className="px-4 py-1 rounded-full text-black font-bold uppercase text-sm mb-1 shadow-lg"
                 style={{ backgroundColor: COLORS.POWERUPS[gameState.activePowerUp] }}
@@ -925,22 +929,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
              {gameState.status === GameStatus.PLAYING && (
               <button 
                 onClick={onPause} 
-                className="p-2 bg-white/10 backdrop-blur-md rounded-full mb-4 pointer-events-auto active:bg-white/30 transition-colors" 
+                className="p-2 bg-white/10 backdrop-blur-md rounded-full mb-4 pointer-events-auto active:bg-white/30 transition-colors landscape:mb-1" 
                 aria-label="Pause Game"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-6 h-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-6 h-6 landscape:w-4 landscape:h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-6-13.5v13.5" />
                 </svg>
               </button>
             )}
             <div className="flex items-center gap-2">
-            <div className="text-2xl font-bold text-white italic">
+            <div className="text-2xl landscape:text-lg font-bold text-white italic">
                 {gameState.level > 3 ? `ZONE ${gameState.level}` : `LVL ${gameState.level}`}
             </div>
             <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: currentLevelConfig.color }}></div>
             </div>
             
-            <div className="w-32 h-2 bg-gray-700 rounded-full mt-2 overflow-hidden border border-white/10">
+            <div className="w-32 h-2 bg-gray-700 rounded-full mt-2 overflow-hidden border border-white/10 landscape:mt-1">
                 <div 
                 className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 ease-out"
                 style={{ width: `${Math.min(100, (gameState.score / nextLevelScore) * 100)}%` }}
@@ -949,7 +953,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             
             {/* Current Track Info (Fade in/out usually, simplified here) */}
             {!persistentData.isMuted && (
-                <div className="mt-2 text-[10px] text-cyan-500/80 font-mono text-right">
+                <div className="mt-2 text-[10px] text-cyan-500/80 font-mono text-right landscape:hidden">
                     ♪ {t(MUSIC_TRACKS.find(t => t.id === persistentData.selectedTrackId)?.name)}
                 </div>
             )}
