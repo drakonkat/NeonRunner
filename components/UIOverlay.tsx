@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { GameStatus, GameState, PowerUpType, PersistentData, NarrativeScenario, Difficulty, Language, LocalizedText } from '../types';
+import { GameStatus, GameState, PowerUpType, PersistentData, NarrativeScenario, Difficulty, Language, LocalizedText, ControlSettings } from '../types';
 import { LEVELS, COLORS, UPGRADE_CONFIG, LORE_TEXT, INFINITE_SCALING, NARRATIVE_SCENARIOS, GLITCH_MODS, LEVEL_END_LORE, DIFFICULTY_MODS, CHARACTERS, UI_TEXT, CHARACTER_STORIES, MUSIC_TRACKS } from '../constants';
 
 interface UIOverlayProps {
@@ -22,6 +22,7 @@ interface UIOverlayProps {
   onResume: () => void;
   onToggleMute: () => void;
   onSelectAudioTrack: (id: string) => void;
+  onUpdateSettings?: (settings: ControlSettings) => void; // New Prop
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({ 
@@ -42,16 +43,21 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   onPause,
   onResume,
   onToggleMute,
-  onSelectAudioTrack
+  onSelectAudioTrack,
+  onUpdateSettings
 }) => {
   const [activeScenario, setActiveScenario] = useState<NarrativeScenario | null>(null);
   const [chosenFlavor, setChosenFlavor] = useState<string | null>(null);
   const [loreCharacterId, setLoreCharacterId] = useState<string | null>(null); // Track which char story is open
   const [storeTab, setStoreTab] = useState<'UPGRADES' | 'AUDIO'>('UPGRADES');
+  const [showSettings, setShowSettings] = useState(false); // Local state for settings menu
   
-  // Countdown state
+  // Countdown state for Level Up
   const [countdown, setCountdown] = useState<number | null>(null);
   const [pendingGlitchId, setPendingGlitchId] = useState<string | null>(null);
+
+  // Countdown state for Resume
+  const [resumeCountdown, setResumeCountdown] = useState<number | null>(null);
 
   // Helper for localization
   const t = (content: LocalizedText | undefined) => {
@@ -72,13 +78,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     }
   }, [gameState.status]);
 
+  // Reset resume countdown when entering pause
+  useEffect(() => {
+    if (gameState.status === GameStatus.PAUSED) {
+      setResumeCountdown(null);
+    }
+  }, [gameState.status]);
+
   const handleAnswer = (glitchId: string, flavor: string) => {
       setChosenFlavor(flavor);
       setPendingGlitchId(glitchId);
       setCountdown(3); 
   };
 
-  // Handle Countdown
+  const handleResumeInitiate = () => {
+    setResumeCountdown(3);
+  };
+
+  // Handle Level Up Countdown
   useEffect(() => {
       if (countdown === null) return;
 
@@ -96,6 +113,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           }
       }
   }, [countdown, pendingGlitchId, onSelectGlitch]);
+
+  // Handle Resume Countdown
+  useEffect(() => {
+    if (resumeCountdown === null) return;
+
+    if (resumeCountdown > 0) {
+      const timer = setTimeout(() => {
+        setResumeCountdown(resumeCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Resume game
+      onResume();
+      setResumeCountdown(null);
+    }
+  }, [resumeCountdown, onResume]);
 
 
   // Calculate dynamic threshold for HUD
@@ -133,6 +166,106 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   };
 
   const getGlitchInfo = (id: string) => GLITCH_MODS.find(g => g.id === id);
+
+  const handleSettingToggle = (key: keyof ControlSettings, value: any) => {
+      if (onUpdateSettings) {
+          onUpdateSettings({
+              ...persistentData.controlSettings,
+              [key]: value
+          });
+      }
+  };
+
+  // --- SETTINGS MODAL ---
+  if (showSettings) {
+      const cSettings = persistentData.controlSettings;
+      return (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-6 animate-in fade-in duration-200">
+              <h2 className="text-4xl font-bold text-cyan-400 mb-8 italic">{txt('SETTINGS')}</h2>
+              
+              <div className="w-full max-w-sm space-y-6 bg-white/5 p-6 rounded-xl border border-white/10">
+                  
+                  {/* LANGUAGE */}
+                  <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-300">{txt('LANGUAGE')}</span>
+                      <div className="flex gap-2">
+                          <button 
+                              onClick={() => setLanguage('EN')}
+                              className={`px-3 py-1 rounded font-bold text-sm ${language === 'EN' ? 'bg-cyan-500 text-black' : 'bg-slate-700'}`}
+                          >EN</button>
+                          <button 
+                              onClick={() => setLanguage('IT')}
+                              className={`px-3 py-1 rounded font-bold text-sm ${language === 'IT' ? 'bg-cyan-500 text-black' : 'bg-slate-700'}`}
+                          >IT</button>
+                      </div>
+                  </div>
+
+                  <div className="w-full h-px bg-white/10"></div>
+
+                  {/* AUDIO */}
+                   <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-300">{txt('AUDIO')}</span>
+                      <button 
+                          onClick={onToggleMute}
+                          className={`w-16 py-1 rounded-full font-bold text-sm transition-all ${!persistentData.isMuted ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}
+                      >
+                          {!persistentData.isMuted ? txt('ON') : txt('OFF')}
+                      </button>
+                  </div>
+
+                  <div className="w-full h-px bg-white/10"></div>
+
+                  {/* SWIPE TOGGLE */}
+                  <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-300">{txt('CONTROLS_SWIPE')}</span>
+                      <button 
+                          onClick={() => handleSettingToggle('enableSwipe', !cSettings.enableSwipe)}
+                          className={`w-16 py-1 rounded-full font-bold text-sm transition-all ${cSettings.enableSwipe ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}
+                      >
+                          {cSettings.enableSwipe ? txt('ON') : txt('OFF')}
+                      </button>
+                  </div>
+
+                   {/* SHOW BUTTONS TOGGLE */}
+                   <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-300">{txt('CONTROLS_BUTTONS')}</span>
+                      <button 
+                          onClick={() => handleSettingToggle('showButtons', !cSettings.showButtons)}
+                          className={`w-16 py-1 rounded-full font-bold text-sm transition-all ${cSettings.showButtons ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}
+                      >
+                          {cSettings.showButtons ? txt('ON') : txt('OFF')}
+                      </button>
+                  </div>
+
+                   {/* LAYOUT TOGGLE */}
+                   <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-300">{txt('CONTROLS_LAYOUT')}</span>
+                      <div className="flex gap-1 bg-slate-800 rounded p-1">
+                          <button 
+                               onClick={() => handleSettingToggle('layout', 'STANDARD')}
+                               className={`px-3 py-1 rounded text-[10px] font-bold ${cSettings.layout === 'STANDARD' ? 'bg-cyan-500 text-black' : 'text-gray-400 hover:bg-slate-700'}`}
+                          >
+                              {txt('LAYOUT_STD')}
+                          </button>
+                           <button 
+                               onClick={() => handleSettingToggle('layout', 'MIRRORED')}
+                               className={`px-3 py-1 rounded text-[10px] font-bold ${cSettings.layout === 'MIRRORED' ? 'bg-cyan-500 text-black' : 'text-gray-400 hover:bg-slate-700'}`}
+                          >
+                              {txt('LAYOUT_REV')}
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              <button
+                onClick={() => setShowSettings(false)}
+                className="mt-8 px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors"
+              >
+                {txt('BACK_TO_MENU')}
+              </button>
+          </div>
+      )
+  }
 
   // --- LORE MODAL ---
   const renderLoreModal = () => {
@@ -191,26 +324,38 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   // --- PAUSED SCREEN ---
   if (gameState.status === GameStatus.PAUSED) {
+    // If counting down, show big number
+    if (resumeCountdown !== null) {
+      return (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm text-white">
+          <div className="text-9xl font-black text-white animate-pulse drop-shadow-[0_0_20px_rgba(6,182,212,0.8)] italic">
+            {resumeCountdown}
+          </div>
+        </div>
+      );
+    }
+
+    // Normal pause menu with transparency
     return (
-      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md text-white p-6 text-center animate-in fade-in duration-200">
-        <h2 className="text-5xl font-bold text-cyan-400 mb-8 animate-pulse">{txt('PAUSED')}</h2>
+      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm text-white p-6 text-center animate-in fade-in duration-200">
+        <h2 className="text-5xl font-bold text-cyan-400 mb-8 animate-pulse drop-shadow-[0_0_10px_rgba(0,0,0,1)]">{txt('PAUSED')}</h2>
         <div className="space-y-4 w-64">
           <button
-            onClick={onResume}
-            className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+            onClick={handleResumeInitiate}
+            className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xl transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-300"
           >
             {txt('RESUME')}
             <span className="block text-[10px] font-mono uppercase tracking-wider mt-1 opacity-60">[ENTER]</span>
           </button>
           <button
-             onClick={onToggleMute}
-             className={`w-full py-3 font-bold rounded-xl border ${persistentData.isMuted ? 'bg-red-900/50 border-red-500 text-red-200' : 'bg-green-900/50 border-green-500 text-green-200'}`}
+             onClick={() => setShowSettings(true)}
+             className="w-full py-3 bg-slate-800/80 hover:bg-slate-700 text-white font-bold rounded-xl border border-white/10 backdrop-blur-md"
           >
-             {persistentData.isMuted ? `🔇 ${txt('UNMUTE')}` : `🔊 ${txt('MUTE')}`}
+             {txt('SETTINGS')}
           </button>
           <button
             onClick={onBackToMenu}
-            className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl"
+            className="w-full py-3 bg-slate-800/80 hover:bg-slate-700 text-white font-bold rounded-xl border border-white/10 backdrop-blur-md"
           >
             {txt('BACK_TO_MENU')}
           </button>
@@ -257,25 +402,30 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   if (gameState.status === GameStatus.LEVEL_UP_CHOICE && activeScenario) {
     if (chosenFlavor) {
         return (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black p-4 animate-in zoom-in duration-300">
-                <h2 className="text-3xl md:text-5xl font-black text-white text-center italic mb-4 glitch-text">
-                    {txt('SYSTEM_UPDATED')}
-                </h2>
-                 <p className="text-xl md:text-2xl text-cyan-400 font-mono text-center max-w-2xl mb-10">
-                    {`> ${chosenFlavor}`}
-                 </p>
-                 
-                 {/* COUNTDOWN DISPLAY */}
-                 {countdown !== null && countdown > 0 && (
-                    <div className="text-9xl font-black text-white animate-pulse drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
-                        {countdown}
-                    </div>
-                 )}
-                 {countdown === 0 && (
-                    <div className="text-6xl font-black text-green-500 animate-bounce">
-                        GO!
-                    </div>
-                 )}
+            // Transparent background during countdown (bg-black/10 + blur)
+            <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center p-4 animate-in zoom-in duration-300 transition-all ${countdown !== null ? 'bg-black/10 backdrop-blur-sm' : 'bg-black'}`}>
+                
+                {/* Wrapper for text readability over 3D scene */}
+                <div className="flex flex-col items-center bg-black/40 p-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <h2 className="text-3xl md:text-5xl font-black text-white text-center italic mb-4 glitch-text drop-shadow-lg">
+                        {txt('SYSTEM_UPDATED')}
+                    </h2>
+                    <p className="text-xl md:text-2xl text-cyan-400 font-mono text-center max-w-2xl mb-10 drop-shadow-md">
+                        {`> ${chosenFlavor}`}
+                    </p>
+                    
+                    {/* COUNTDOWN DISPLAY */}
+                    {countdown !== null && countdown > 0 && (
+                        <div className="text-9xl font-black text-white animate-pulse drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]">
+                            {countdown}
+                        </div>
+                    )}
+                    {countdown === 0 && (
+                        <div className="text-6xl font-black text-green-500 animate-bounce drop-shadow-[0_0_30px_rgba(34,197,94,0.8)]">
+                            GO!
+                        </div>
+                    )}
+                 </div>
             </div>
         )
     }
@@ -546,26 +696,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         <h2 className="text-2xl font-bold text-pink-500 italic mb-4 rotate-[-2deg]">CHAOS EDITION</h2>
         <p className="text-gray-300 mb-6 text-lg">{txt('SUBTITLE')} <span className="text-red-400 font-bold">GLITCH.</span></p>
         
-        {/* LANGUAGE SWITCHER */}
+        {/* SETTINGS BUTTON (Replaces previous loose buttons) */}
         <div className="absolute top-6 right-6 flex gap-2">
-            <button 
-                onClick={() => setLanguage('EN')} 
-                className={`px-3 py-1 font-bold rounded border border-white/30 ${language === 'EN' ? 'bg-cyan-500 text-black' : 'bg-black text-gray-400'}`}
+             <button 
+                onClick={() => setShowSettings(true)}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 hover:bg-cyan-500 hover:text-black border border-white/20 transition-all"
+                title="Settings"
             >
-                EN
-            </button>
-            <button 
-                onClick={() => setLanguage('IT')} 
-                className={`px-3 py-1 font-bold rounded border border-white/30 ${language === 'IT' ? 'bg-cyan-500 text-black' : 'bg-black text-gray-400'}`}
-            >
-                IT
-            </button>
-            <button 
-                onClick={onToggleMute}
-                className={`px-3 py-1 font-bold rounded border border-white/30 ${!persistentData.isMuted ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}
-                title={persistentData.isMuted ? "Unmute" : "Mute"}
-            >
-                {persistentData.isMuted ? "🔇" : "🔊"}
+                ⚙️
             </button>
         </div>
 

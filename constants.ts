@@ -1,4 +1,5 @@
 
+
 import { LevelConfig, PowerUpType, GlitchMod, NarrativeScenario, Difficulty, Character, LocalizedText, AudioTrack } from './types';
 
 export const LANE_WIDTH = 2.5;
@@ -39,29 +40,38 @@ export const UI_TEXT = {
   CLOSE: { en: "CLOSE", it: "CHIUDI" },
   MUTE: { en: "MUTE AUDIO", it: "MUTA AUDIO" },
   UNMUTE: { en: "ENABLE AUDIO", it: "ATTIVA AUDIO" },
-  CURRENT_TRACK: { en: "NOW PLAYING", it: "IN RIPRODUZIONE" }
+  CURRENT_TRACK: { en: "NOW PLAYING", it: "IN RIPRODUZIONE" },
+  SETTINGS: { en: "SETTINGS", it: "IMPOSTAZIONI" },
+  CONTROLS_SWIPE: { en: "SWIPE GESTURES", it: "GESTI SWIPE" },
+  CONTROLS_BUTTONS: { en: "SHOW BUTTONS", it: "MOSTRA TASTI" },
+  CONTROLS_LAYOUT: { en: "LAYOUT", it: "POSIZIONE" },
+  LAYOUT_STD: { en: "STANDARD", it: "STANDARD" },
+  LAYOUT_REV: { en: "LEFT HANDED", it: "MANCINO" },
+  ON: { en: "ON", it: "ON" },
+  OFF: { en: "OFF", it: "OFF" },
+  LANGUAGE: { en: "LANGUAGE", it: "LINGUA" }
 };
 
 export const DIFFICULTY_MODS: Record<Difficulty, { speed: number, density: number, score: number, coinMultiplier: number, label: LocalizedText, color: string }> = {
   SCRIPT_KIDDIE: {
-    speed: 1.1,     
-    density: 0.4,    
+    speed: 0.8,     
+    density: 0.7,    
     score: 0.5,      
     coinMultiplier: 0.5, 
     label: { en: "NOOB", it: "NOOB" },
     color: "#4ade80" 
   },
   CYBER_PUNK: {
-    speed: 2.0,
-    density: 1.0,
+    speed: 1.5,
+    density: 1.2,
     score: 1.0,
     coinMultiplier: 1.0, 
     label: { en: "HACKER", it: "HACKER" },
     color: "#22d3ee" 
   },
   NET_RUNNER: {
-    speed: 3.0,      
-    density: 1.6,    
+    speed: 2.3,      
+    density: 1.9,    
     score: 2.5,      
     coinMultiplier: 2.5, 
     label: { en: "GOD", it: "DIO" },

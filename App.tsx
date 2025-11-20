@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import GameCanvas, { GameCanvasHandle } from './components/GameCanvas';
 import UIOverlay from './components/UIOverlay';
 import Controls from './components/Controls';
-import { GameStatus, GameState, GameAction, PowerUpType, PersistentData, GlitchType, Difficulty, Language } from './types';
+import { GameStatus, GameState, GameAction, PowerUpType, PersistentData, GlitchType, Difficulty, Language, ControlSettings } from './types';
 import { LEVELS, UPGRADE_CONFIG, INFINITE_SCALING, CHARACTERS, MUSIC_TRACKS } from './constants';
 import { audioManager } from './audioManager';
 
@@ -27,7 +27,12 @@ const App: React.FC = () => {
       unlockedCharacters: ['DEFAULT'],
       isMuted: false,
       selectedTrackId: 'THE_GRID',
-      unlockedTrackIds: ['THE_GRID']
+      unlockedTrackIds: ['THE_GRID'],
+      controlSettings: {
+          enableSwipe: true,
+          showButtons: true,
+          layout: 'STANDARD'
+      }
     };
 
     if (saved) {
@@ -45,7 +50,8 @@ const App: React.FC = () => {
           // Audio Migration
           isMuted: parsed.isMuted !== undefined ? parsed.isMuted : false,
           selectedTrackId: parsed.selectedTrackId || 'THE_GRID',
-          unlockedTrackIds: parsed.unlockedTrackIds || ['THE_GRID']
+          unlockedTrackIds: parsed.unlockedTrackIds || ['THE_GRID'],
+          controlSettings: parsed.controlSettings || defaultData.controlSettings
         };
       } catch (e) {
         console.error("Failed to load save", e);
@@ -276,6 +282,13 @@ const App: React.FC = () => {
       }
   };
 
+  const handleUpdateSettings = (newSettings: ControlSettings) => {
+      setPersistentData(prev => ({
+          ...prev,
+          controlSettings: newSettings
+      }));
+  };
+
   const buyUpgrade = (type: PowerUpType) => {
     const currentLevel = persistentData.upgrades[type] || 0;
     if (currentLevel >= UPGRADE_CONFIG.MAX_LEVEL) return;
@@ -436,6 +449,7 @@ const App: React.FC = () => {
         onBackToMenu={handleBackToMenu}
         onToggleMute={handleToggleMute}
         onSelectAudioTrack={handleSelectAudioTrack}
+        onUpdateSettings={handleUpdateSettings}
       />
 
       {gameState.status === GameStatus.PLAYING && (
@@ -443,6 +457,7 @@ const App: React.FC = () => {
             onAction={handleControlAction} 
             skillProgress={skillProgressUI}
             isSkillReady={skillState.current <= 0}
+            settings={persistentData.controlSettings}
         />
       )}
     </div>

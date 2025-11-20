@@ -98,6 +98,12 @@ export interface UpgradeLevels {
   [PowerUpType.SPEED]: number;
 }
 
+export interface ControlSettings {
+  enableSwipe: boolean;
+  showButtons: boolean;
+  layout: 'STANDARD' | 'MIRRORED'; // STANDARD: Move Left, Action Right. MIRRORED: Swapped.
+}
+
 export interface PersistentData {
   totalCoins: number;
   highScore: number;
@@ -110,6 +116,8 @@ export interface PersistentData {
   isMuted: boolean;
   selectedTrackId: string;
   unlockedTrackIds: string[];
+  // Control Settings
+  controlSettings: ControlSettings;
 }
 
 export interface GameState {
