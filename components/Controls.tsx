@@ -148,6 +148,11 @@ const Controls: React.FC<ControlsProps> = ({ onAction, skillProgress, isSkillRea
                  />
              )}
 
+             {/* Desktop Hint [E] */}
+             <div className="hidden md:block absolute top-2 right-3 bg-black/50 border border-white/30 text-[10px] font-mono text-white px-1 rounded leading-none">
+                 E
+             </div>
+
              <div className="z-10 flex flex-col items-center">
                 <span className="text-xl md:text-2xl">{isSkillReady ? '⚡' : '⏳'}</span>
                 <span className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-tighter">ULTIMATE</span>

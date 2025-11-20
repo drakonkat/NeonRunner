@@ -78,6 +78,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     }
   }, [gameState.status]);
 
+  // Keyboard listener for Answering Questions (1, 2, 3)
+  useEffect(() => {
+    if (gameState.status === GameStatus.LEVEL_UP_CHOICE && activeScenario && !chosenFlavor) {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (['1', '2', '3'].includes(e.key)) {
+                const index = parseInt(e.key) - 1;
+                if (activeScenario.options[index]) {
+                    handleAnswer(activeScenario.options[index].glitchId, t(activeScenario.options[index].flavorResult));
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [gameState.status, activeScenario, chosenFlavor]);
+
   // Reset resume countdown when entering pause
   useEffect(() => {
     if (gameState.status === GameStatus.PAUSED) {
@@ -450,9 +466,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                         onClick={() => handleAnswer(option.glitchId, t(option.flavorResult))}
                         className="text-left p-4 border border-green-800 hover:bg-green-900/30 hover:border-green-400 transition-all group flex items-center gap-4"
                     >
-                        <span className="bg-green-900 text-green-300 px-2 py-1 text-xs font-bold group-hover:bg-green-400 group-hover:text-black">
+                        <span className="bg-green-900 text-green-300 px-2 py-1 text-xs font-bold group-hover:bg-green-400 group-hover:text-black hidden md:inline-block">
+                            [{idx + 1}]
+                        </span>
+                        {/* Mobile fallback for simple lettering */}
+                        <span className="bg-green-900 text-green-300 px-2 py-1 text-xs font-bold group-hover:bg-green-400 group-hover:text-black md:hidden">
                             {String.fromCharCode(65 + idx)}
                         </span>
+
                         <span className="text-gray-300 group-hover:text-white md:text-lg">
                             {t(option.text)}
                         </span>
